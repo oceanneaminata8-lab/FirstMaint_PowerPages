@@ -448,6 +448,15 @@ export async function qualifierOrdreTravail(id, { priorite, technicien, justific
     })
   }
 
+  // Attribution automatique par défaut (workflows v2.0, étape 2) : si aucun
+  // prestataire n'est déjà affecté ni fourni explicitement, on propose celui
+  // de la famille de l'actif ; le gestionnaire DMG reste libre de réaffecter.
+  if (!technicien && !ordre.technicien) {
+    const categorieActif = mockCategories.find((c) => c.id === actif?.categorieId)
+    const prestataireParDefaut = mockFournisseurs.find((f) => f.id === categorieActif?.prestataireParDefautId)
+    if (prestataireParDefaut) ordre.technicien = prestataireParDefaut.nom
+  }
+
   if (priorite) ordre.priorite = priorite
   if (technicien) ordre.technicien = technicien
   if (justificatif) ordre.justificatifPriorite = justificatif
@@ -481,19 +490,15 @@ export async function reprendreIntervention(id, auteur = 'Système') {
   return updateOrdreTravailStatut(id, 'En cours', auteur)
 }
 
-// Étape 5 — Résolution : compte-rendu structuré obligatoire, avec photos
-// avant/après obligatoires pour les criticités Critique/Haute (contrôle
-// bloquant à la saisie — US-02, étape 5).
+// Étape 5 — Résolution : compte-rendu structuré obligatoire (workflows v2.0,
+// étape 5). Les photos avant/après restent recommandées pour les criticités
+// Critique/Haute mais ne sont plus bloquantes en phase de démarrage.
 export async function resoudreOrdreTravail(id, compteRendu, auteur = 'Système') {
   const ordre = mockOrdresTravail.find((o) => o.id === id)
   if (!ordre) return simulateDelay(null)
-  const actif = mockActifs.find((a) => a.id === ordre.actifId)
 
   if (!compteRendu?.actionsRealisees?.trim()) {
     throw new Error('Le compte-rendu doit préciser les actions réalisées.')
-  }
-  if (['Critique', 'Haute'].includes(actif?.criticite) && (!compteRendu.photoAvant || !compteRendu.photoApres)) {
-    throw new Error('Photos "avant" et "après" obligatoires pour une intervention sur un actif de criticité Critique ou Haute.')
   }
   const checklistIncomplete = (ordre.checklist || []).some((item) => item.obligatoire && !item.coche)
   if (checklistIncomplete) {
@@ -750,11 +755,12 @@ export async function updatePlanPreventif(id, changements) {
   return simulateDelay(plan)
 }
 
-// Activation d'un plan (US-03, étape 6) : génère une échéance par actif couvert,
-// étalée sur la période de fréquence quand le plan cible une catégorie entière
-// (évite un pic d'OT à l'activation — point d'attention 3.6). Un plan couvrant
-// un actif de criticité Critique nécessite un validateur "Direction" côté UI ;
-// ici on trace simplement qui a validé.
+// Activation d'un plan (workflows v2.0, section 3.3, étape 6) : génère une
+// échéance par actif couvert, étalée sur la période de fréquence quand le plan
+// cible une famille entière (évite un pic d'OT à l'activation — point
+// d'attention 3.6). Un plan de famille criticité Critique ou une surcharge sur
+// un actif individuel nécessite un validateur "Responsable DMG" côté UI ; ici
+// on trace simplement qui a validé.
 export async function validerPlanPreventif(id, validateur, dateDebut) {
   const plan = mockPlansPreventifs.find((p) => p.id === id)
   if (!plan || plan.etatCycleVie === 'Actif') return simulateDelay(plan)
@@ -818,7 +824,7 @@ export async function validerDateIntervention(id, date, auteur = 'Système') {
         id: `twf-${Date.now()}`,
         titre: `Date hors fenêtre à arbitrer — ${ordre.numero}`,
         type: 'Escalade planification',
-        assigneA: 'Responsable maintenance DMG',
+        assigneA: 'Gestionnaire DMG',
         statut: 'À faire',
         dateEcheance: new Date().toISOString().slice(0, 10),
       })

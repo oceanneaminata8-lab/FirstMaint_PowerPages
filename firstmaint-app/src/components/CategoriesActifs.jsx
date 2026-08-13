@@ -1,14 +1,26 @@
 import { useState } from 'react'
 
-export function CategoriesActifs({ categoriesActif, actifs, onCreer }) {
+const CRITICITES = ['Critique', 'Haute', 'Moyenne', 'Basse']
+const FREQUENCES = ['Hebdomadaire', 'Mensuelle', 'Trimestrielle', 'Semestrielle', 'Annuelle']
+
+const FORM_VIDE = {
+  nom: '', description: '', criticiteParDefaut: 'Moyenne',
+  frequencePreventiveParDefaut: 'Trimestrielle', prestataireParDefautId: '', modeOperatoireParDefaut: '',
+}
+
+// Familles d'équipement (workflows v2.0, principe directeur 2) : chaque famille
+// porte des caractéristiques par défaut — criticité, fréquence préventive,
+// prestataire habituel, mode opératoire — dont héritent les fiches actif à la
+// création (surchargeables au cas par cas sur l'actif individuel).
+export function CategoriesActifs({ categoriesActif, actifs, fournisseurs = [], onCreer }) {
   const [ouvert, setOuvert] = useState(false)
-  const [form, setForm] = useState({ nom: '', description: '' })
+  const [form, setForm] = useState(FORM_VIDE)
 
   function soumettre(e) {
     e.preventDefault()
     if (!form.nom.trim()) return
-    onCreer(form)
-    setForm({ nom: '', description: '' })
+    onCreer({ ...form, prestataireParDefautId: form.prestataireParDefautId || null })
+    setForm(FORM_VIDE)
     setOuvert(false)
   }
 
@@ -16,14 +28,14 @@ export function CategoriesActifs({ categoriesActif, actifs, onCreer }) {
     <>
       <div className="page-header">
         <span className="page-eyebrow">Archives de base</span>
-        <h1>Catégories d'actifs</h1>
-        <p>Référentiel des typologies d'équipements utilisées à travers le patrimoine.</p>
+        <h1>Familles d'équipement</h1>
+        <p>Référentiel des familles d'équipements et de leurs caractéristiques par défaut (héritées par les actifs).</p>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h2>{categoriesActif.length} catégorie(s)</h2>
-          <button className="btn" onClick={() => setOuvert(!ouvert)}>{ouvert ? 'Annuler' : '+ Nouvelle catégorie'}</button>
+          <h2>{categoriesActif.length} famille(s)</h2>
+          <button className="btn" onClick={() => setOuvert(!ouvert)}>{ouvert ? 'Annuler' : '+ Nouvelle famille'}</button>
         </div>
 
         {ouvert && (
@@ -36,9 +48,32 @@ export function CategoriesActifs({ categoriesActif, actifs, onCreer }) {
               <label>Description</label>
               <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
+            <div className="form-field">
+              <label>Criticité par défaut</label>
+              <select value={form.criticiteParDefaut} onChange={(e) => setForm({ ...form, criticiteParDefaut: e.target.value })}>
+                {CRITICITES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Fréquence préventive par défaut</label>
+              <select value={form.frequencePreventiveParDefaut} onChange={(e) => setForm({ ...form, frequencePreventiveParDefaut: e.target.value })}>
+                {FREQUENCES.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Prestataire par défaut</label>
+              <select value={form.prestataireParDefautId} onChange={(e) => setForm({ ...form, prestataireParDefautId: e.target.value })}>
+                <option value="">Aucun</option>
+                {fournisseurs.map((f) => <option key={f.id} value={f.id}>{f.nom}</option>)}
+              </select>
+            </div>
+            <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Mode opératoire par défaut</label>
+              <input value={form.modeOperatoireParDefaut} onChange={(e) => setForm({ ...form, modeOperatoireParDefaut: e.target.value })} />
+            </div>
             <div className="form-actions">
               <button type="button" className="btn secondary" onClick={() => setOuvert(false)}>Annuler</button>
-              <button type="submit" className="btn">Créer la catégorie</button>
+              <button type="submit" className="btn">Créer la famille</button>
             </div>
           </form>
         )}
@@ -46,22 +81,33 @@ export function CategoriesActifs({ categoriesActif, actifs, onCreer }) {
         <table>
           <thead>
             <tr>
-              <th>Catégorie</th>
-              <th>Description</th>
+              <th>Famille</th>
+              <th>Criticité par défaut</th>
+              <th>Fréquence préventive</th>
+              <th>Prestataire par défaut</th>
               <th>Actifs rattachés</th>
             </tr>
           </thead>
           <tbody>
             {categoriesActif.length === 0 && (
-              <tr><td colSpan={3} className="empty-state">Aucune catégorie enregistrée.</td></tr>
+              <tr><td colSpan={5} className="empty-state">Aucune famille enregistrée.</td></tr>
             )}
-            {categoriesActif.map((c) => (
-              <tr key={c.id}>
-                <td><strong>{c.nom}</strong></td>
-                <td style={{ color: 'var(--color-muted)', fontSize: 12.5 }}>{c.description || '—'}</td>
-                <td>{actifs.filter((a) => a.categorieId === c.id).length}</td>
-              </tr>
-            ))}
+            {categoriesActif.map((c) => {
+              const prestataire = fournisseurs.find((f) => f.id === c.prestataireParDefautId)
+              return (
+                <tr key={c.id}>
+                  <td>
+                    <strong>{c.nom}</strong>
+                    <br />
+                    <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>{c.description || '—'}</span>
+                  </td>
+                  <td>{c.criticiteParDefaut || '—'}</td>
+                  <td>{c.frequencePreventiveParDefaut || '—'}</td>
+                  <td>{prestataire?.nom || '—'}</td>
+                  <td>{actifs.filter((a) => a.categorieId === c.id).length}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

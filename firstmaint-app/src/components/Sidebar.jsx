@@ -87,7 +87,9 @@ function groupeDeLActif(active) {
 const CLES_PAR_ROLE = {
   'Technicien / Prestataire': ['dashboard', 'ordresTravail', 'tickets', 'piecesRechange'],
   'Responsable de site': ['dashboard', 'actifs', 'emplacements', 'ordresTravail', 'tickets', 'maintenancePreventive', 'clesAcces', 'piecesRechange', 'consommationEnergie'],
-  'Direction': ['dashboard', 'afrilandDashboard', 'actifs', 'emplacements', 'fournisseurs', 'evaluationsPrestataires', 'projetsImmobiliers', 'tachesAlertes', 'consommationEnergie'],
+  'Responsable DMG': ['dashboard', 'afrilandDashboard', 'actifs', 'emplacements', 'fournisseurs', 'evaluationsPrestataires', 'projetsImmobiliers', 'tachesAlertes', 'consommationEnergie'],
+  // Opérateur DMG (workflows v2.0) : saisie déportée des comptes-rendus prestataires.
+  'Opérateur DMG': ['dashboard', 'ordresTravail', 'maintenancePreventive', 'tickets'],
 }
 
 function filtrerParRole(groups, role) {

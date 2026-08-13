@@ -238,19 +238,10 @@ export default function App() {
     setJournalAudit(journal)
   }
 
-  async function soumettreActifPourValidation(id) {
-    await dataService.soumettreActifPourValidation(id)
+  async function activerActif(id) {
+    await dataService.activerActif(id, utilisateurEmail || role)
     await rafraichirApresChangementActif()
-  }
-
-  async function validerActif(id) {
-    await dataService.validerActif(id, role)
-    await rafraichirApresChangementActif()
-  }
-
-  async function rejeterActif(id, motif) {
-    await dataService.rejeterActif(id, motif, role)
-    await rafraichirApresChangementActif()
+    await rafraichirApresMoteur() // alerte non bloquante si criticité Critique sans contrat/plan
   }
 
   async function demanderRetraitActif(id, motif) {
@@ -597,7 +588,6 @@ export default function App() {
           actifSelectionne ? (
             <ActifDetail
               actif={actifSelectionne}
-              role={role}
               emplacements={emplacements}
               categoriesActif={categoriesActif}
               ordresTravail={ordresTravail}
@@ -608,9 +598,7 @@ export default function App() {
               journalAudit={journalAudit}
               demandesModificationActif={demandesModificationActif.filter((d) => d.actifId === actifSelectionne.id)}
               onRetour={() => setActifSelectionneId(null)}
-              onSoumettrePourValidation={soumettreActifPourValidation}
-              onValider={validerActif}
-              onRejeter={rejeterActif}
+              onActiver={activerActif}
               onDemanderRetrait={demanderRetraitActif}
               onConfirmerRetrait={confirmerRetraitActif}
               onAjouterPieceJointe={ajouterPieceJointeActif}
@@ -622,14 +610,11 @@ export default function App() {
               actifs={actifsVisibles}
               emplacements={emplacements}
               categoriesActif={categoriesActif}
-              role={role}
               onChangerStatut={changerStatutActif}
               onSelectionner={setActifSelectionneId}
               onCreer={creerActif}
               onImporterCsv={importerActifsCsv}
-              onSoumettrePourValidation={soumettreActifPourValidation}
-              onValider={validerActif}
-              onRejeter={rejeterActif}
+              onActiver={activerActif}
               onGenererCodeInventaire={dataService.genererProchainCodeInventaire}
               onCreerEmplacement={creerEmplacement}
             />
@@ -639,7 +624,7 @@ export default function App() {
           <EmplacementsList emplacements={emplacements} actifs={actifs} onCreer={creerEmplacement} />
         )}
         {ongletActif === 'categoriesActifs' && (
-          <CategoriesActifs categoriesActif={categoriesActif} actifs={actifs} onCreer={creerCategorieActif} />
+          <CategoriesActifs categoriesActif={categoriesActif} actifs={actifs} fournisseurs={fournisseurs} onCreer={creerCategorieActif} />
         )}
         {ongletActif === 'piecesRechange' && (
           <PiecesRechange

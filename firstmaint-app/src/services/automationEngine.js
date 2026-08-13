@@ -19,7 +19,7 @@ import {
   alertesAutomatiques, tachesWorkflow, projetsImmobiliers, jalonsProjets,
   actifs, piecesRechange, contrats, fournisseurs, rapportsMensuels,
 } from '../data/mockData.js'
-import { DELAI_MAX_PAR_CRITICITE, DELAI_ANTICIPATION_PAR_CRITICITE, createOrdreTravail, validerClotureOrdreTravail } from './dataService.js'
+import { DELAI_MAX_PAR_CRITICITE, DELAI_ANTICIPATION_PAR_CRITICITE, createOrdreTravail } from './dataService.js'
 import { joursDeLaPeriode } from '../domain/echeances.js'
 
 function idAleatoire(prefixe) {
@@ -137,7 +137,7 @@ export async function executerMoteurRegles() {
           id: idAleatoire('twf'),
           titre: `Non-conformité préventive à traiter — ${plan.nom}`,
           type: 'Non-conformité préventive',
-          assigneA: 'Responsable maintenance DMG',
+          assigneA: 'Gestionnaire DMG',
           statut: 'À faire',
           dateEcheance: new Date().toISOString().slice(0, 10),
         })
@@ -157,8 +157,8 @@ export async function executerMoteurRegles() {
         tachesWorkflow.push({
           id: idAleatoire('twf'),
           titre: `Suspension contrat à valider — ${plan.nom}`,
-          type: 'Escalade Direction',
-          assigneA: 'Direction',
+          type: 'Escalade Responsable DMG',
+          assigneA: 'Responsable DMG',
           statut: 'À faire',
           dateEcheance: new Date().toISOString().slice(0, 10),
         })
@@ -178,7 +178,7 @@ export async function executerMoteurRegles() {
 
     const paliers = [
       { seuil: 200, niveau: 'Critique', libelle: '200 % du délai SLA dépassé', dest: 'Direction Générale' },
-      { seuil: 100, niveau: 'Critique', libelle: '100 % du délai SLA dépassé', dest: 'Directeur DMG' },
+      { seuil: 100, niveau: 'Critique', libelle: '100 % du délai SLA dépassé', dest: 'Responsable DMG' },
       { seuil: 80, niveau: 'Avertissement', libelle: '80 % du délai SLA écoulé', dest: 'Responsable de site' },
       { seuil: 50, niveau: 'Avertissement', libelle: '50 % du délai SLA écoulé', dest: 'Gestionnaire DMG' },
     ]
@@ -243,15 +243,21 @@ export async function executerMoteurRegles() {
     }
   }
 
-  // 6. Validation tacite de clôture après 48h sans action du responsable de
-  // site (US-02, étape 6) — réutilise dataService.validerClotureOrdreTravail
-  // pour que le calcul SLA/pénalité, la fiche post-incident et l'avancement
-  // de l'échéance préventive restent centralisés à un seul endroit.
+  // 6. Rappel de validation de clôture (workflows v2.0, étape 6) : pas de
+  // validation tacite — un OT "Résolu" reste ouvert tant que le responsable de
+  // site ne s'est pas prononcé explicitement. Un rappel est renvoyé chaque
+  // jour (sourceId daté -> se répète sans jamais dupliquer le même jour).
   for (const ot of ordresTravail) {
     if (ot.statut !== 'Résolu' || !ot.dateResolution) continue
-    if (joursDepuis(ot.dateResolution) >= 2) {
-      await validerClotureOrdreTravail(ot.id, true, null, 'Système (validation tacite 48h)')
-    }
+    const joursEcoules = Math.floor(joursDepuis(ot.dateResolution))
+    if (joursEcoules < 1) continue
+    ajouterAlerte({
+      titre: `Validation de clôture en attente — ${ot.numero || ot.titre}`,
+      niveau: 'Avertissement',
+      source: 'Suivi correctif',
+      description: `Résolu depuis ${joursEcoules} jour(s), en attente de validation explicite du responsable de site (pas de clôture automatique).`,
+      sourceId: `rappel-cloture-${ot.id}-${new Date().toISOString().slice(0, 10)}`,
+    })
   }
 
   // 7. Trois correctifs en 30 jours sur le même actif -> revue du plan
@@ -276,7 +282,7 @@ export async function executerMoteurRegles() {
         id: idAleatoire('twf'),
         titre: `Revoir le plan préventif de "${actif?.nom || actifId}"`,
         type: 'Revue plan préventif',
-        assigneA: 'Responsable maintenance DMG',
+        assigneA: 'Gestionnaire DMG',
         statut: 'À faire',
         dateEcheance: new Date().toISOString().slice(0, 10),
       })
@@ -297,9 +303,9 @@ export async function executerMoteurRegles() {
     })
     tachesWorkflow.push({
       id: idAleatoire('twf'),
-      titre: `Rapport mensuel préventif ${moisCourant} envoyé au Directeur DMG`,
+      titre: `Rapport mensuel préventif ${moisCourant} envoyé au Responsable DMG`,
       type: 'Rapport mensuel',
-      assigneA: 'Directeur DMG',
+      assigneA: 'Responsable DMG',
       statut: 'Terminé',
       dateEcheance: new Date().toISOString().slice(0, 10),
     })

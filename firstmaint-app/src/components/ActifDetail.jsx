@@ -6,20 +6,14 @@ import { QrCode } from './QrCode.jsx'
 
 const TYPES_DOCUMENTS = ['Facture d\'achat', 'PV de réception', 'Manuel', 'Garantie', 'Plan technique', 'Autre']
 
-function peutValider(role) {
-  return role === 'Gestionnaire DMG' || role === 'Direction'
-}
-
 export function ActifDetail({
-  actif, role, emplacements, categoriesActif, ordresTravail, tickets,
+  actif, emplacements, categoriesActif, ordresTravail, tickets,
   plansPreventifs, contrats, fournisseurs, journalAudit, demandesModificationActif = [],
-  onRetour, onSoumettrePourValidation, onValider, onRejeter,
+  onRetour, onActiver,
   onDemanderRetrait, onConfirmerRetrait, onAjouterPieceJointe,
   onDemanderModification, onValiderDemandeModification,
 }) {
   const categorie = categoriesActif.find((c) => c.id === actif.categorieId)
-  const [motifRejet, setMotifRejet] = useState('')
-  const [afficherRejet, setAfficherRejet] = useState(false)
   const [motifRetrait, setMotifRetrait] = useState('')
   const [afficherRetrait, setAfficherRetrait] = useState(false)
   const [modifCritique, setModifCritique] = useState({ criticite: actif.criticite })
@@ -40,11 +34,6 @@ export function ActifDetail({
   const historiqueActif = (journalAudit || [])
     .filter((a) => a.entite === 'actif' && a.entiteId === actif.id)
     .sort((a, b) => new Date(b.date) - new Date(a.date))
-
-  function confirmerRejet() {
-    onRejeter(actif.id, motifRejet || 'Non motivé')
-    setAfficherRejet(false)
-  }
 
   function confirmerDemandeRetrait() {
     onDemanderRetrait(actif.id, motifRetrait || 'Non motivé')
@@ -104,27 +93,9 @@ export function ActifDetail({
           </div>
         </div>
 
-        {actif.motifRejet && (
-          <p style={{ padding: '0 20px 12px', color: 'var(--status-urgent)', fontSize: 12.5 }}>
-            Dernier rejet : {actif.motifRejet}
-          </p>
-        )}
-
         <div style={{ padding: '0 20px 16px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {actif.etatCycleVie === 'Brouillon' && (
-            <button className="btn" onClick={() => onSoumettrePourValidation(actif.id)}>Soumettre pour validation</button>
-          )}
-          {actif.etatCycleVie === 'En validation' && peutValider(role) && !afficherRejet && (
-            <>
-              <button className="btn" onClick={() => onValider(actif.id)}>Valider</button>
-              <button className="btn secondary" onClick={() => setAfficherRejet(true)}>Rejeter</button>
-            </>
-          )}
-          {afficherRejet && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input placeholder="Motif du rejet" value={motifRejet} onChange={(e) => setMotifRejet(e.target.value)} />
-              <button className="btn secondary" onClick={confirmerRejet}>Confirmer le rejet</button>
-            </div>
+          {actif.etatCycleVie === 'En saisie' && (
+            <button className="btn" onClick={() => onActiver(actif.id)}>Activer l'actif</button>
           )}
           {actif.etatCycleVie === 'Actif' && !afficherRetrait && (
             <button className="btn secondary" onClick={() => setAfficherRetrait(true)}>Demander le retrait</button>
@@ -160,7 +131,7 @@ export function ActifDetail({
         </div>
         <div style={{ padding: '0 20px 16px' }}>
           <p style={{ fontSize: 12.5, color: 'var(--color-muted)' }}>
-            Nécessite deux valideurs distincts avant application (US-01, section 1.4).
+            Nécessite la validation du Responsable DMG avant application (workflows v2.0, section 1.4).
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
             <select value={modifCritique.criticite} onChange={(e) => setModifCritique({ criticite: e.target.value })}>
@@ -175,7 +146,7 @@ export function ActifDetail({
                   {JSON.stringify(d.champs)} — {d.statut}
                   {d.statut === 'En attente' && (
                     <button className="btn secondary" style={{ marginLeft: 8, padding: '3px 8px', fontSize: 11 }} onClick={() => onValiderDemandeModification(d.id)}>
-                      {d.valideur1 ? 'Valider (2e signature)' : 'Valider (1re signature)'}
+                      Valider (Responsable DMG)
                     </button>
                   )}
                 </li>

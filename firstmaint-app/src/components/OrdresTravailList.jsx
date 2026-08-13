@@ -265,7 +265,7 @@ export function OrdresTravailList({
                                   </select>
                                 </div>
                                 <div className="form-field">
-                                  <label>Prestataire / technicien</label>
+                                  <label>Prestataire / technicien {o.technicien && '(proposé automatiquement, modifiable)'}</label>
                                   <input value={qualifForm.technicien} onChange={(e) => setQualifForm({ ...qualifForm, technicien: e.target.value })} placeholder={o.technicien || '—'} />
                                 </div>
                                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
@@ -348,11 +348,11 @@ export function OrdresTravailList({
                                   <input type="number" value={compteRendu.coutReel} onChange={(e) => setCompteRendu({ ...compteRendu, coutReel: e.target.value })} />
                                 </div>
                                 <div className="form-field">
-                                  <label>Photo avant {['Critique', 'Haute'].includes(actif?.criticite) && '*'}</label>
+                                  <label>Photo avant {['Critique', 'Haute'].includes(actif?.criticite) && '(recommandé)'}</label>
                                   <input type="file" onChange={(e) => setCompteRendu({ ...compteRendu, photoAvant: e.target.files[0]?.name || '' })} />
                                 </div>
                                 <div className="form-field">
-                                  <label>Photo après {['Critique', 'Haute'].includes(actif?.criticite) && '*'}</label>
+                                  <label>Photo après {['Critique', 'Haute'].includes(actif?.criticite) && '(recommandé)'}</label>
                                   <input type="file" onChange={(e) => setCompteRendu({ ...compteRendu, photoApres: e.target.files[0]?.name || '' })} />
                                 </div>
                                 <div className="form-field" style={{ gridColumn: '1 / -1' }}>
@@ -369,7 +369,7 @@ export function OrdresTravailList({
                           {o.statut === 'Résolu' && (
                             <div style={{ gridColumn: '1 / -1' }}>
                               <h3>Validation de la clôture (responsable de site — US-02, étape 6)</h3>
-                              <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>Sans action sous 48h, la clôture est réputée acceptée (validation tacite).</p>
+                              <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>Validation explicite requise — aucune clôture automatique. Un rappel est envoyé chaque jour tant qu'aucune réponse n'est donnée.</p>
                               <div style={{ display: 'flex', gap: 8 }}>
                                 <button className="btn" onClick={() => executer(() => onValiderCloture(o.id, true))}>Valider la clôture</button>
                                 <input placeholder="Motif de refus" value={motifRefusCloture} onChange={(e) => setMotifRefusCloture(e.target.value)} style={{ fontSize: 12.5 }} />

@@ -5,18 +5,14 @@ import { parseCsv } from '../utils/csvImport.js'
 
 const STATUTS = ['En service', 'En panne', 'En maintenance', 'Retiré']
 const CRITICITES = ['Critique', 'Haute', 'Moyenne', 'Basse']
-const ETATS_CYCLE_VIE = ['Brouillon', 'En validation', 'Actif', 'En retrait', 'Retiré']
-
-// Valide pour la criticité 1 (Critique) : Direction seule. Pour les autres,
-// le Gestionnaire DMG suffit (US-01, section 1.2 — cycle de vie).
-function peutValider(role) {
-  return role === 'Gestionnaire DMG' || role === 'Direction'
-}
+// Cycle de vie à 4 états (workflows v2.0, section 1.2) — plus d'étape de
+// validation hiérarchique : activation directe par le Gestionnaire DMG.
+const ETATS_CYCLE_VIE = ['En saisie', 'Actif', 'En retrait', 'Retiré']
 
 export function ActifsList({
-  actifs, emplacements, categoriesActif, role,
+  actifs, emplacements, categoriesActif,
   onChangerStatut, onSelectionner, onCreer, onImporterCsv,
-  onSoumettrePourValidation, onValider, onRejeter, onGenererCodeInventaire, onCreerEmplacement,
+  onActiver, onGenererCodeInventaire, onCreerEmplacement,
 }) {
   const [recherche, setRecherche] = useState('')
   const [filtreStatut, setFiltreStatut] = useState('')
@@ -26,10 +22,13 @@ export function ActifsList({
   const [filtreEtatCycleVie, setFiltreEtatCycleVie] = useState('')
 
   const [ouvert, setOuvert] = useState(false)
+  const [codeInventairePreview, setCodeInventairePreview] = useState('')
   const [form, setForm] = useState({
-    nom: '', codeInventaire: '', numeroSerie: '',
+    nom: '', numeroSerie: '',
     emplacementId: emplacements[0]?.id || '', categorieId: categoriesActif[0]?.id || '',
-    criticite: 'Moyenne', statut: 'En service', dateAcquisition: '', dateFinGarantie: '', valeur: '',
+    criticite: categoriesActif[0]?.criticiteParDefaut || 'Moyenne',
+    statut: 'En service', dateAcquisition: '', dateFinGarantie: '', valeur: '',
+    attributsSpecifiques: '',
   })
   const [nouveauLocalOuvert, setNouveauLocalOuvert] = useState(false)
   const [nouveauLocal, setNouveauLocal] = useState({ nom: '', type: 'Salle', parentId: emplacements[0]?.id || '' })
@@ -37,8 +36,6 @@ export function ActifsList({
   const inputFichierRef = useRef(null)
   const [messageImport, setMessageImport] = useState('')
   const [rejetsImport, setRejetsImport] = useState([])
-  const [rejetActifEnCours, setRejetActifEnCours] = useState(null)
-  const [motifRejet, setMotifRejet] = useState('')
 
   const actifsFiltres = actifs.filter((actif) => {
     if (filtreStatut && actif.statut !== filtreStatut) return false
@@ -53,17 +50,29 @@ export function ActifsList({
     return true
   })
 
-  function soumettre(e) {
-    e.preventDefault()
-    if (!form.nom.trim() || !form.codeInventaire.trim()) return
-    onCreer({ ...form, valeur: Number(form.valeur) || 0 })
-    setForm({ ...form, nom: '', codeInventaire: '', numeroSerie: '', dateAcquisition: '', dateFinGarantie: '', valeur: '' })
-    setOuvert(false)
+  async function ouvrirFormulaire() {
+    if (ouvert) {
+      setOuvert(false)
+      return
+    }
+    const code = await onGenererCodeInventaire()
+    setCodeInventairePreview(code)
+    setOuvert(true)
   }
 
-  async function genererCode() {
-    const code = await onGenererCodeInventaire()
-    setForm((f) => ({ ...f, codeInventaire: code }))
+  function changerCategorie(categorieId) {
+    const categorie = categoriesActif.find((c) => c.id === categorieId)
+    // La famille pré-alimente la criticité par défaut (héritage, workflows v2.0,
+    // principe 2) ; le Gestionnaire DMG peut ensuite la surcharger librement.
+    setForm({ ...form, categorieId, criticite: categorie?.criticiteParDefaut || form.criticite })
+  }
+
+  function soumettre(e) {
+    e.preventDefault()
+    if (!form.nom.trim()) return
+    onCreer({ ...form, valeur: Number(form.valeur) || 0 })
+    setForm({ ...form, nom: '', numeroSerie: '', dateAcquisition: '', dateFinGarantie: '', valeur: '', attributsSpecifiques: '' })
+    setOuvert(false)
   }
 
   async function creerNouveauLocal() {
@@ -94,15 +103,7 @@ export function ActifsList({
     e.target.value = ''
   }
 
-  function demanderRejet(id) {
-    setRejetActifEnCours(id)
-    setMotifRejet('')
-  }
-
-  function confirmerRejet(id) {
-    onRejeter(id, motifRejet || 'Non motivé')
-    setRejetActifEnCours(null)
-  }
+  const categorieSelectionnee = categoriesActif.find((c) => c.id === form.categorieId)
 
   return (
     <>
@@ -118,7 +119,7 @@ export function ActifsList({
           <div style={{ display: 'flex', gap: 8 }}>
             <input type="file" accept=".csv" ref={inputFichierRef} onChange={importerFichier} style={{ display: 'none' }} />
             <button className="btn secondary" onClick={choisirFichier}>Importer un CSV</button>
-            <button className="btn" onClick={() => setOuvert(!ouvert)}>{ouvert ? 'Annuler' : '+ Nouvel actif'}</button>
+            <button className="btn" onClick={ouvrirFormulaire}>{ouvert ? 'Annuler' : '+ Nouvel actif'}</button>
           </div>
         </div>
 
@@ -142,11 +143,8 @@ export function ActifsList({
               <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required />
             </div>
             <div className="form-field">
-              <label>Code inventaire</label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input value={form.codeInventaire} onChange={(e) => setForm({ ...form, codeInventaire: e.target.value })} required />
-                <button type="button" className="btn secondary" style={{ padding: '5px 10px', fontSize: 12 }} onClick={genererCode}>Générer</button>
-              </div>
+              <label>Code inventaire (généré automatiquement)</label>
+              <input value={codeInventairePreview} readOnly disabled style={{ color: 'var(--color-muted)' }} />
             </div>
             <div className="form-field">
               <label>N° de série</label>
@@ -180,16 +178,24 @@ export function ActifsList({
               </div>
             )}
             <div className="form-field">
-              <label>Catégorie</label>
-              <select value={form.categorieId} onChange={(e) => setForm({ ...form, categorieId: e.target.value })}>
+              <label>Famille d'équipement</label>
+              <select value={form.categorieId} onChange={(e) => changerCategorie(e.target.value)}>
                 {categoriesActif.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
               </select>
             </div>
             <div className="form-field">
-              <label>Criticité</label>
+              <label>Criticité (héritée de la famille, modifiable)</label>
               <select value={form.criticite} onChange={(e) => setForm({ ...form, criticite: e.target.value })}>
                 {CRITICITES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
+            </div>
+            <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Attribut spécifique à la famille{categorieSelectionnee ? ` (${categorieSelectionnee.nom})` : ''}</label>
+              <input
+                value={form.attributsSpecifiques}
+                onChange={(e) => setForm({ ...form, attributsSpecifiques: e.target.value })}
+                placeholder="ex. capacité cassettes (GAB), puissance kVA (groupe électrogène)…"
+              />
             </div>
             <div className="form-field">
               <label>Date d'acquisition</label>
@@ -205,7 +211,7 @@ export function ActifsList({
             </div>
             <div className="form-actions">
               <button type="button" className="btn secondary" onClick={() => setOuvert(false)}>Annuler</button>
-              <button type="submit" className="btn">Créer l'actif (Brouillon)</button>
+              <button type="submit" className="btn">Créer l'actif (En saisie)</button>
             </div>
           </form>
         )}
@@ -231,7 +237,7 @@ export function ActifsList({
             {CRITICITES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)}>
-            <option value="">Toutes les catégories</option>
+            <option value="">Toutes les familles</option>
             {categoriesActif.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
           <select value={filtreEmplacement} onChange={(e) => setFiltreEmplacement(e.target.value)}>
@@ -244,7 +250,7 @@ export function ActifsList({
           <thead>
             <tr>
               <th>Actif</th>
-              <th>Catégorie</th>
+              <th>Famille</th>
               <th>Emplacement</th>
               <th>N° série</th>
               <th>Criticité</th>
@@ -296,27 +302,10 @@ export function ActifsList({
                     </select>
                   </td>
                   <td>
-                    {actif.etatCycleVie === 'Brouillon' && (
-                      <button className="btn secondary" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => onSoumettrePourValidation(actif.id)}>
-                        Soumettre
+                    {actif.etatCycleVie === 'En saisie' && (
+                      <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => onActiver(actif.id)}>
+                        Activer
                       </button>
-                    )}
-                    {actif.etatCycleVie === 'En validation' && peutValider(role) && rejetActifEnCours !== actif.id && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => onValider(actif.id)}>Valider</button>
-                        <button className="btn secondary" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => demanderRejet(actif.id)}>Rejeter</button>
-                      </div>
-                    )}
-                    {rejetActifEnCours === actif.id && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <input
-                          placeholder="Motif du rejet"
-                          value={motifRejet}
-                          onChange={(e) => setMotifRejet(e.target.value)}
-                          style={{ fontSize: 12, width: 140 }}
-                        />
-                        <button className="btn secondary" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => confirmerRejet(actif.id)}>Confirmer</button>
-                      </div>
                     )}
                   </td>
                 </tr>

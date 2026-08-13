@@ -348,8 +348,8 @@ export const echeancesPlan = [
 // correctif sur un actif de criticité Critique (US-02, étape 6).
 export const fichesAnalysePostIncident = []
 
-// Envois simulés du rapport mensuel préventif au Directeur DMG (US-03, 3.6) —
-// un seul enregistrement par mois pour rester idempotent.
+// Envois simulés du rapport mensuel préventif au Responsable DMG (workflows
+// v2.0, section 3.6) — un seul enregistrement par mois pour rester idempotent.
 export const rapportsMensuels = []
 
 // ---- Fournisseurs et contrats -------------------------------------------------

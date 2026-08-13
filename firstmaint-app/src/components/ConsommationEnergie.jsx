@@ -13,8 +13,6 @@ export function ConsommationEnergie({ consommationsEnergie, emplacements, onCree
     emplacementId: emplacements[0]?.id || '', typeEnergie: 'Électricité', date: '', valeur: '', unite: 'kWh', cout: '',
   })
 
-  const coutTotal = consommationsEnergie.reduce((s, c) => s + (c.cout || 0), 0)
-
   function soumettre(e) {
     e.preventDefault()
     if (!form.date || !form.valeur) return
@@ -29,21 +27,6 @@ export function ConsommationEnergie({ consommationsEnergie, emplacements, onCree
         <span className="page-eyebrow">Gestion de l'énergie</span>
         <h1>Relevés de consommation</h1>
         <p>Suivi de la consommation électrique, du carburant et de l'eau par site.</p>
-      </div>
-
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div className="kpi-card">
-          <div className="kpi-body">
-            <div className="value">{consommationsEnergie.length}</div>
-            <div className="label">Relevé(s) enregistré(s)</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-body">
-            <div className="value">{formatMontant(coutTotal)}</div>
-            <div className="label">Coût cumulé</div>
-          </div>
-        </div>
       </div>
 
       <div className="card">

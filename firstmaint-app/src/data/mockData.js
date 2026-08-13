@@ -2,7 +2,9 @@
 // les futures colonnes Dataverse pour faciliter le branchement plus tard.
 
 // Profils utilisateur (cahier des charges, section IV — un profil = un jeu d'écrans visibles).
-export const ROLES = ['Gestionnaire DMG', 'Responsable de site', 'Technicien / Prestataire', 'Direction']
+// "Opérateur DMG" (workflows v2.0, US-02/US-03) : saisie déportée des comptes-rendus
+// prestataires sur poste fixe quand ce dernier n'a pas d'accès direct à l'application.
+export const ROLES = ['Gestionnaire DMG', 'Responsable de site', 'Technicien / Prestataire', 'Responsable DMG', 'Opérateur DMG']
 
 // Seuil au-delà duquel une validation de paiement exige deux valideurs distincts.
 export const SEUIL_DOUBLE_VALIDATION = 500000
@@ -18,15 +20,36 @@ export const emplacements = [
   { id: 'emp-8', nom: 'Rez-de-chaussée', type: 'Étage', parentId: 'emp-5' },
 ]
 
+// Familles d'équipement (workflows v2.0, principe directeur 2 — structuration par
+// famille) : chaque famille porte des caractéristiques par défaut (criticité,
+// fréquence préventive, prestataire habituel, mode opératoire). Une fiche actif
+// hérite de ces valeurs à la création et peut les surcharger au cas par cas.
 export const categoriesActif = [
-  { id: 'cat-1', nom: 'Informatique', description: 'Serveurs, postes de travail, réseau' },
-  { id: 'cat-2', nom: 'Climatisation', description: 'Systèmes CVC' },
-  { id: 'cat-3', nom: 'Groupe électrogène', description: 'Alimentation de secours' },
-  { id: 'cat-4', nom: 'Sécurité', description: 'Caméras, contrôle d\'accès, alarmes' },
+  {
+    id: 'cat-1', nom: 'Informatique', description: 'Serveurs, postes de travail, réseau',
+    criticiteParDefaut: 'Moyenne', frequencePreventiveParDefaut: 'Trimestrielle',
+    prestataireParDefautId: null, modeOperatoireParDefaut: 'Contrôle des sauvegardes et des journaux système.',
+  },
+  {
+    id: 'cat-2', nom: 'Climatisation', description: 'Systèmes CVC',
+    criticiteParDefaut: 'Critique', frequencePreventiveParDefaut: 'Trimestrielle',
+    prestataireParDefautId: 'frs-1', modeOperatoireParDefaut: 'Nettoyage des filtres, contrôle du gaz réfrigérant.',
+  },
+  {
+    id: 'cat-3', nom: 'Groupe électrogène', description: 'Alimentation de secours',
+    criticiteParDefaut: 'Haute', frequencePreventiveParDefaut: 'Mensuelle',
+    prestataireParDefautId: 'frs-2', modeOperatoireParDefaut: 'Vidange, contrôle des niveaux, test de démarrage à vide.',
+  },
+  {
+    id: 'cat-4', nom: 'Sécurité', description: 'Caméras, contrôle d\'accès, alarmes',
+    criticiteParDefaut: 'Moyenne', frequencePreventiveParDefaut: 'Semestrielle',
+    prestataireParDefautId: 'frs-3', modeOperatoireParDefaut: 'Contrôle du fonctionnement et de l\'enregistrement.',
+  },
 ]
 
-// Cycle de vie d'une fiche actif (cahier des charges US-01, section 1.2) :
-// Brouillon -> En validation -> Actif -> En retrait -> Retiré. Les 4 actifs de
+// Cycle de vie d'une fiche actif (workflows v2.0, section 1.2) : En saisie ->
+// Actif -> En retrait -> Retiré. Plus d'étape de validation hiérarchique à la
+// création (activation directe par le Gestionnaire DMG). Les 4 actifs de
 // démonstration ci-dessous démarrent tous "Actif" (déjà en exploitation).
 export const actifs = [
   {
@@ -103,9 +126,10 @@ export const actifs = [
   },
 ]
 
-// Demandes de modification "critique" sur une fiche actif (US-01, section 1.4) :
-// criticité / statut de cycle de vie / valeur d'acquisition — nécessitent deux
-// valideurs distincts avant application (même principe que mouvementsCles).
+// Demandes de modification "critique" sur une fiche actif (workflows v2.0,
+// section 1.4) : criticité / statut de cycle de vie / valeur d'acquisition —
+// nécessitent la validation du Responsable DMG (validateur unique) avant
+// application. Les autres modifications ("courantes") sont auto-approuvées.
 export const demandesModificationActif = []
 
 // Statuts possibles d'un OT (US-02, section 2.2, machine à 9 états) :

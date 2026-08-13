@@ -20,8 +20,8 @@
 
   --status-succes: #2F7D4F;
   --status-succes-bg: #E4F1E8;
-  --status-attention: #B8860B;
-  --status-attention-bg: #F5EDD8;
+  --status-attention: #8A1620;
+  --status-attention-bg: #F3E3E1;
   --status-urgent: #E30613;
   --status-urgent-bg: #FBE1E3;
   --status-info: #4A5568;
@@ -42,15 +42,15 @@
      l'écran OpenMaint/CMDBuild plutôt que d'un habillage SaaS générique.
      La landing page et l'écran de connexion gardent la palette au-dessus. ---- */
   --app-maroon: #8A1620;
-  --app-maroon-dark: #6B0F17;
+  --app-maroon-dark: #5F0F16;
   --app-maroon-soft: #F3E3E1;
-  --app-ink: #2B2A28;
-  --app-muted: #6B6B67;
-  --app-border: #D6D4CC;
-  --app-border-strong: #B9B6AC;
-  --app-sidebar-bg: #FAFAF7;
+  --app-ink: #242424;
+  --app-muted: #686868;
+  --app-border: #D4D4D4;
+  --app-border-strong: #AFAFAF;
+  --app-sidebar-bg: #F6F6F4;
   --app-header-bg: #FFFFFF;
-  --app-surface-sunken: #EFEEE7;
+  --app-surface-sunken: #ECECE9;
   --app-radius: 3px;
 }
 
@@ -543,7 +543,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 8px 14px;
-  background: linear-gradient(#F7F1EF, #F0E8E5);
+  background: linear-gradient(#F5F5F5, #ECEBE8);
   border-bottom: 1px solid var(--app-border);
 }
 

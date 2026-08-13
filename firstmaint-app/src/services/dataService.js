@@ -98,19 +98,26 @@ export async function getActifs() {
   return simulateDelay(mockActifs)
 }
 
-// Nouvel actif : entre toujours en Brouillon (US-01, section 1.2 — cycle de vie),
-// pas encore visible dans le pilotage courant tant qu'il n'est pas validé.
+// Nouvel actif : entre en "En saisie" (workflows v2.0, section 1.2 — cycle de
+// vie à 4 états), et hérite par défaut de la criticité de sa famille tant que
+// l'appelant n'en fournit pas une explicitement (surcharge possible côté UI).
+// Le code inventaire est toujours généré par le système, jamais saisi à la main.
 export async function createActif(nouvelActif) {
+  const categorie = mockCategories.find((c) => c.id === nouvelActif.categorieId)
+  const codeInventaire = await genererProchainCodeInventaire()
   const actif = {
     id: `act-${Date.now()}`,
-    etatCycleVie: 'Brouillon',
-    motifRejet: null,
-    validePar: null,
-    dateValidation: null,
+    etatCycleVie: 'En saisie',
     piecesJointes: [],
+    criticite: categorie?.criticiteParDefaut || 'Moyenne',
     ...nouvelActif,
+    codeInventaire,
   }
   mockActifs.push(actif)
+  await ajouterAudit({
+    action: 'Actif — créé (En saisie)',
+    entite: 'actif', entiteId: actif.id, auteur: 'Système', details: actif.nom,
+  })
   return simulateDelay(actif)
 }
 
@@ -143,59 +150,38 @@ export async function genererProchainCodeInventaire() {
   return simulateDelay(`${prefixe}${String(prochain).padStart(4, '0')}`)
 }
 
-// --- Cycle de vie de la fiche actif (US-01, section 1.3, étapes 6-8) --------
-export async function soumettreActifPourValidation(id) {
+// --- Cycle de vie de la fiche actif (workflows v2.0, section 1.3, étape 6) --
+// Activation directe par le Gestionnaire DMG : plus de validation hiérarchique
+// préalable à la création. Un actif de criticité Critique sans contrat ni plan
+// préventif rattaché déclenche une alerte (recommandé, non bloquant).
+export async function activerActif(id, auteur = 'Système') {
   const actif = mockActifs.find((a) => a.id === id)
-  if (actif && actif.etatCycleVie === 'Brouillon') {
-    actif.etatCycleVie = 'En validation'
-    await ajouterAudit({
-      action: 'Actif — soumis pour validation',
-      entite: 'actif', entiteId: id, auteur: 'Système', details: actif.nom,
-    })
-  }
-  return simulateDelay(actif)
-}
+  if (!actif || actif.etatCycleVie !== 'En saisie') return simulateDelay(actif)
 
-// Règle bloquante (US-01, étape 4) : un actif de criticité Critique doit être
-// rattaché à un contrat de maintenance et à un plan préventif pour être validé.
-export async function validerActif(id, validateur) {
-  const actif = mockActifs.find((a) => a.id === id)
-  if (!actif) return simulateDelay(null)
+  actif.etatCycleVie = 'Actif'
+  await ajouterAudit({
+    action: `Actif — activé par ${auteur}`,
+    entite: 'actif', entiteId: id, auteur, details: actif.nom,
+  })
 
   if (actif.criticite === 'Critique') {
     const aContrat = mockContrats.some((c) => c.actifsCouverts.includes(actif.id))
     const aPlan = mockPlansPreventifs.some((p) => p.actifId === actif.id)
       || (actif.categorieId && mockPlansPreventifs.some((p) => p.categorieId === actif.categorieId))
     if (!aContrat || !aPlan) {
-      return rejeterActif(
-        id,
-        'Un actif de criticité Critique doit être rattaché à un contrat de maintenance et à un plan préventif avant validation.',
-        validateur,
-      )
+      mockAlertesAutomatiques.push({
+        id: `alr-${Date.now()}`,
+        titre: `Actif critique sans contrat/plan préventif rattaché — ${actif.nom}`,
+        niveau: 'Avertissement',
+        source: 'Référentiel patrimoine',
+        date: new Date().toISOString().slice(0, 10),
+        lu: false,
+        description: 'Un actif de criticité Critique devrait être rattaché à un contrat de maintenance et à un plan préventif (recommandé, non bloquant).',
+        sourceId: `actif-critique-sans-rattachement-${actif.id}`,
+      })
     }
   }
 
-  actif.etatCycleVie = 'Actif'
-  actif.validePar = validateur
-  actif.dateValidation = new Date().toISOString().slice(0, 10)
-  actif.motifRejet = null
-  await ajouterAudit({
-    action: `Actif — validé par ${validateur}`,
-    entite: 'actif', entiteId: id, auteur: validateur, details: actif.nom,
-  })
-  return simulateDelay(actif)
-}
-
-export async function rejeterActif(id, motif, validateur) {
-  const actif = mockActifs.find((a) => a.id === id)
-  if (actif) {
-    actif.etatCycleVie = 'Brouillon'
-    actif.motifRejet = motif
-    await ajouterAudit({
-      action: `Actif — rejeté par ${validateur}`,
-      entite: 'actif', entiteId: id, auteur: validateur, details: motif,
-    })
-  }
   return simulateDelay(actif)
 }
 
@@ -245,10 +231,11 @@ export async function ajouterPieceJointeActif(id, nomFichier, typeDocument) {
   return simulateDelay(actif)
 }
 
-// --- Modifications catégorisées sur une fiche actif (US-01, section 1.4) ---
-// mineure -> auto-approuvée ; structurante -> appliquée + notification au
-// responsable de site ; critique -> nécessite deux valideurs distincts avant
-// application (même principe que le double contrôle de createMouvementCle).
+// --- Modifications catégorisées sur une fiche actif (workflows v2.0, section
+// 1.4) --- deux catégories : "courante" (site, contrat, plan, corrections
+// diverses) -> auto-approuvée et tracée ; "critique" (criticité, statut de
+// cycle de vie, valeur d'acquisition) -> validation du Responsable DMG requise
+// (validateur unique).
 export async function demanderModificationActif(id, champs, categorie, auteur) {
   const actif = mockActifs.find((a) => a.id === id)
   if (!actif) return simulateDelay(null)
@@ -261,12 +248,11 @@ export async function demanderModificationActif(id, champs, categorie, auteur) {
       statut: 'En attente',
       demandePar: auteur,
       dateDemande: new Date().toISOString().slice(0, 10),
-      valideur1: null,
-      valideur2: null,
+      valideur: null,
     }
     mockDemandesModificationActif.push(demande)
     await ajouterAudit({
-      action: 'Actif — demande de modification critique en attente de double validation',
+      action: 'Actif — demande de modification critique en attente de validation (Responsable DMG)',
       entite: 'actif', entiteId: id, auteur, details: JSON.stringify(champs),
     })
     return simulateDelay(demande)
@@ -274,19 +260,9 @@ export async function demanderModificationActif(id, champs, categorie, auteur) {
 
   Object.assign(actif, champs)
   await ajouterAudit({
-    action: `Actif — modification ${categorie === 'structurante' ? 'structurante' : 'mineure'}`,
+    action: 'Actif — modification courante',
     entite: 'actif', entiteId: id, auteur, details: JSON.stringify(champs),
   })
-  if (categorie === 'structurante') {
-    mockTachesWorkflow.push({
-      id: `twf-${Date.now()}`,
-      titre: `Modification structurante sur "${actif.nom}"`,
-      type: 'Notification',
-      assigneA: 'Responsable de site',
-      statut: 'À faire',
-      dateEcheance: new Date().toISOString().slice(0, 10),
-    })
-  }
   return simulateDelay(actif)
 }
 
@@ -294,18 +270,14 @@ export async function validerDemandeModification(id, validateur) {
   const demande = mockDemandesModificationActif.find((d) => d.id === id)
   if (!demande || demande.statut === 'Validée') return simulateDelay(demande)
 
-  if (!demande.valideur1) {
-    demande.valideur1 = validateur
-  } else if (!demande.valideur2 && validateur !== demande.valideur1) {
-    demande.valideur2 = validateur
-    demande.statut = 'Validée'
-    const actif = mockActifs.find((a) => a.id === demande.actifId)
-    if (actif) Object.assign(actif, demande.champs)
-    await ajouterAudit({
-      action: `Actif — modification critique validée (${demande.valideur1} / ${demande.valideur2})`,
-      entite: 'actif', entiteId: demande.actifId, auteur: validateur, details: JSON.stringify(demande.champs),
-    })
-  }
+  demande.valideur = validateur
+  demande.statut = 'Validée'
+  const actif = mockActifs.find((a) => a.id === demande.actifId)
+  if (actif) Object.assign(actif, demande.champs)
+  await ajouterAudit({
+    action: `Actif — modification critique validée par ${validateur}`,
+    entite: 'actif', entiteId: demande.actifId, auteur: validateur, details: JSON.stringify(demande.champs),
+  })
   return simulateDelay(demande)
 }
 
@@ -313,14 +285,15 @@ export async function getDemandesModificationActif() {
   return simulateDelay(mockDemandesModificationActif)
 }
 
-// Import initial en masse (US-01, section 1.5) : contrôle qualité par ligne
-// (champs requis, unicité du code inventaire dans le lot et contre l'existant)
-// avant création. Retourne le détail des lignes créées et rejetées pour que
-// l'écran d'import puisse afficher un journal de rejets exploitable.
+// Import en masse, réutilisable à volonté — inventaire initial ou alimentations
+// récurrentes ultérieures (workflows v2.0, section 1.5) : contrôle qualité par
+// ligne avant création. Les codes inventaire sont générés par le système (plus
+// de saisie manuelle), donc pas de contrôle d'unicité à faire ici. Retourne le
+// détail des lignes créées et rejetées pour que l'écran d'import puisse
+// afficher un journal de rejets exploitable.
 export async function importActifsCsv(lignes) {
   const crees = []
   const rejetes = []
-  const codesVus = new Set(mockActifs.map((a) => a.codeInventaire).filter(Boolean))
 
   for (const [index, ligne] of lignes.entries()) {
     const numeroLigne = index + 2 // +1 en-tête, +1 index 0-based
@@ -328,28 +301,21 @@ export async function importActifsCsv(lignes) {
       rejetes.push({ ligne: numeroLigne, motif: 'Nom manquant.' })
       continue
     }
-    if (!ligne.codeInventaire || !ligne.codeInventaire.trim()) {
-      rejetes.push({ ligne: numeroLigne, motif: 'Code inventaire manquant.' })
-      continue
-    }
-    if (codesVus.has(ligne.codeInventaire)) {
-      rejetes.push({ ligne: numeroLigne, motif: `Code inventaire "${ligne.codeInventaire}" en doublon.` })
-      continue
-    }
-    codesVus.add(ligne.codeInventaire)
 
-    const actif = await createActif({
+    const champsActif = {
       nom: ligne.nom,
-      codeInventaire: ligne.codeInventaire,
       numeroSerie: ligne.numeroSerie,
       statut: ligne.statut || 'En service',
       emplacementId: ligne.emplacementId || null,
       categorieId: ligne.categorieId || null,
-      criticite: ligne.criticite || 'Moyenne',
       dateAcquisition: ligne.dateAcquisition || null,
       dateFinGarantie: ligne.dateFinGarantie || null,
       valeur: Number(ligne.valeur) || 0,
-    })
+    }
+    // Absente : repli sur la criticité par défaut de la famille (createActif).
+    if (ligne.criticite) champsActif.criticite = ligne.criticite
+
+    const actif = await createActif(champsActif)
     crees.push(actif)
   }
 

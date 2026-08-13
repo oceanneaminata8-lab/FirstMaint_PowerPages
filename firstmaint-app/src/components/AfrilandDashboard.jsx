@@ -1,45 +1,11 @@
-import { Icon } from './Icons.jsx'
 import { exportToCsv } from '../utils/csvExport.js'
 
 const NIVEAUX_ALERTE = { 'Info': 'info', 'Avertissement': 'attention', 'Critique': 'urgent' }
 
-function formatMontant(montant) {
-  return `${montant.toLocaleString('fr-FR')} FCFA`
-}
-
 export function AfrilandDashboard({
-  slaMeasures, penalites, validationsPaiement, evaluationsPrestataires,
-  projetsImmobiliers, jalonsProjets, tachesWorkflow, alertesAutomatiques, role,
+  alertesAutomatiques, role,
   rapportsMensuels = [], fichesAnalysePostIncident = [],
 }) {
-  const penalitesEnAttente = penalites.filter((p) => p.statut === 'En attente')
-  const montantPenalitesEnAttente = penalitesEnAttente.reduce((s, p) => s + p.montant, 0)
-  const alertesNonLues = alertesAutomatiques.filter((a) => !a.lu)
-  const tachesAFaire = tachesWorkflow.filter((t) => t.statut !== 'Terminé')
-  const projetsEnCours = projetsImmobiliers.filter((p) => p.statut === 'En cours')
-
-  const tauxConformite = slaMeasures.length
-    ? Math.round((slaMeasures.filter((m) => m.conforme).length / slaMeasures.length) * 100)
-    : 0
-
-  const noteMoyenne = evaluationsPrestataires.length
-    ? (evaluationsPrestataires.reduce((s, e) => s + (e.noteQualite + e.noteDelai + e.noteCout) / 3, 0) / evaluationsPrestataires.length).toFixed(1)
-    : '—'
-
-  // Taux de respect des jalons projets échus (US-06, KPI requis par le cahier des charges).
-  const jalonsEchus = (jalonsProjets || []).filter((j) => new Date(j.dateEcheance) <= new Date())
-  const tauxRespectJalons = jalonsEchus.length
-    ? Math.round((jalonsEchus.filter((j) => j.statut === 'Atteint').length / jalonsEchus.length) * 100)
-    : 100
-
-  const kpis = [
-    { label: 'Conformité SLA', valeur: `${tauxConformite}%`, icone: 'preventive', alerte: tauxConformite < 80 },
-    { label: 'Pénalités en attente', valeur: penalitesEnAttente.length, icone: 'alerte', alerte: penalitesEnAttente.length > 0 },
-    { label: 'Alertes non lues', valeur: alertesNonLues.length, icone: 'alerte', alerte: alertesNonLues.length > 0 },
-    { label: 'Note moyenne prestataires', valeur: `${noteMoyenne}/5`, icone: 'fournisseurs' },
-    { label: 'Respect des jalons projets', valeur: `${tauxRespectJalons}%`, icone: 'ordres', alerte: tauxRespectJalons < 80 },
-  ]
-
   const alertesRecentes = [...alertesAutomatiques]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5)
@@ -64,42 +30,6 @@ export function AfrilandDashboard({
         <div className="no-print" style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button className="btn secondary" onClick={exporter}>Exporter en CSV</button>
           <button className="btn secondary" onClick={() => window.print()}>Imprimer / PDF</button>
-        </div>
-      </div>
-
-      <div className="kpi-grid">
-        {kpis.map((k) => (
-          <div key={k.label} className={`kpi-card ${k.alerte ? 'kpi-card-alerte' : ''}`}>
-            <span className="kpi-icon"><Icon type={k.icone} /></span>
-            <div className="kpi-body">
-              <div className="value">{k.valeur}</div>
-              <div className="label">{k.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-        <div className="kpi-card">
-          <span className="kpi-icon"><Icon type="fournisseurs" /></span>
-          <div className="kpi-body">
-            <div className="value">{formatMontant(montantPenalitesEnAttente)}</div>
-            <div className="label">Montant pénalités en attente</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-icon"><Icon type="ordres" /></span>
-          <div className="kpi-body">
-            <div className="value">{tachesAFaire.length}</div>
-            <div className="label">Tâches workflow à traiter</div>
-          </div>
-        </div>
-        <div className="kpi-card">
-          <span className="kpi-icon"><Icon type="emplacements" /></span>
-          <div className="kpi-body">
-            <div className="value">{projetsEnCours.length}</div>
-            <div className="label">Projets immobiliers en cours</div>
-          </div>
         </div>
       </div>
 

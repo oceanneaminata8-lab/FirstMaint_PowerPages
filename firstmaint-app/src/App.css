@@ -35,23 +35,30 @@
 
   --radius-sm: 6px;
   --radius-md: 10px;
-  --shadow-card: 0 1px 2px rgba(27, 33, 29, 0.06), 0 1px 12px rgba(27, 33, 29, 0.04);
+  --shadow-card: 0 2px 4px rgba(27, 33, 29, 0.05), 0 8px 24px rgba(27, 33, 29, 0.07);
 
-  /* ---- Thème « application » (post-connexion) : grille dense, bordures
-     franches, rouge institutionnel utilisé avec parcimonie — inspiré de
-     l'écran OpenMaint/CMDBuild plutôt que d'un habillage SaaS générique.
-     La landing page et l'écran de connexion gardent la palette au-dessus. ---- */
+  /* ---- Thème « application » (post-connexion) : toujours structuré autour
+     du noir/rouge institutionnel Afriland, mais avec des coins arrondis et
+     deux teintes d'accent secondaires (or, sarcelle) utilisées avec
+     parcimonie pour aérer l'ensemble — un rendu moins "grille CMDB", plus
+     accueillant. La landing page et l'écran de connexion gardent la palette
+     au-dessus. ---- */
   --app-maroon: #8A1620;
   --app-maroon-dark: #5F0F16;
   --app-maroon-soft: #F3E3E1;
+  --app-gold: #B8860E;
+  --app-gold-soft: #F7EED9;
+  --app-teal: #2F6E63;
+  --app-teal-soft: #E1EEEC;
   --app-ink: #242424;
   --app-muted: #686868;
-  --app-border: #D4D4D4;
-  --app-border-strong: #AFAFAF;
+  --app-border: #E1DFDC;
+  --app-border-strong: #C7C4C0;
   --app-sidebar-bg: #F6F6F4;
   --app-header-bg: #FFFFFF;
   --app-surface-sunken: #ECECE9;
-  --app-radius: 3px;
+  --app-radius: 18px;
+  --app-radius-sm: 10px;
 }
 
 * { box-sizing: border-box; }
@@ -81,16 +88,35 @@ body {
   min-height: 0;
 }
 
-/* ---------- Barre supérieure (entête OpenMaint) ---------- */
+/* ---------- Barre supérieure — bandeau coloré à bord festonné (inspiré des
+   habillages d'app mobile type "wallet"), en rouge institutionnel Afriland.
+   Le motif festonné est un SVG en bosses répétées positionné juste sous la
+   barre ; margin-bottom lui réserve l'espace nécessaire pour rester visible
+   au-dessus du contenu qui suit. ---------- */
 .topbar {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
+  height: 60px;
   padding: 0 18px;
-  background: var(--app-header-bg);
-  border-bottom: 1px solid var(--app-border);
+  background: var(--color-bg);
+  border-bottom: none;
+  margin-bottom: 18px;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 18px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='22'%3E%3Cpath d='M0,0 A24,24 0 0,0 48,0 L48,22 L0,22 Z' fill='%238A1620'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: 48px 22px;
+  pointer-events: none;
 }
 
 .topbar-brand img {
@@ -114,7 +140,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--app-muted);
-  border-radius: var(--app-radius);
+  border-radius: var(--app-radius-sm);
 }
 
 .topbar-icon-btn:hover {
@@ -156,7 +182,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 5px 10px 5px 6px;
-  border-radius: var(--app-radius);
+  border-radius: var(--app-radius-sm);
   color: var(--app-ink);
 }
 
@@ -189,6 +215,7 @@ body {
 .topbar-user-role {
   font-size: 12.5px;
   font-weight: 600;
+  color: var(--app-ink);
 }
 
 .topbar-user-menu {
@@ -266,12 +293,12 @@ body {
   z-index: 45;
 }
 
-/* ---------- Sidebar (arborescence claire, calquée sur OpenMaint) ---------- */
+/* ---------- Sidebar (panneau de couleur pleine — pendant du bandeau coloré
+   d'un habillage app mobile moderne, plutôt que le panneau gris plat d'avant) ---------- */
 .sidebar {
-  background: var(--app-sidebar-bg);
-  color: var(--app-ink);
-  border-right: 1px solid var(--app-border);
-  padding: 14px 10px;
+  background: linear-gradient(165deg, var(--app-maroon) 0%, var(--app-maroon-dark) 100%);
+  color: #F3E6E6;
+  padding: 18px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -299,7 +326,7 @@ body {
 .sidebar-nav-group + .sidebar-nav-group {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid var(--app-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 /* ---------- Recherche sidebar ---------- */
@@ -308,11 +335,11 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px;
-  background: #fff;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  color: var(--app-muted);
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #F3E6E6;
 }
 
 .sidebar-search svg {
@@ -326,23 +353,23 @@ body {
   flex: 1;
   padding: 8px 0;
   font-size: 13px;
-  color: var(--app-ink);
+  color: #fff;
 }
 
 .sidebar-search input::placeholder {
-  color: var(--app-muted);
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .sidebar-search-clear {
   all: unset;
   cursor: pointer;
   font-size: 11px;
-  color: var(--app-muted);
+  color: rgba(255, 255, 255, 0.7);
   padding: 4px;
 }
 
 .sidebar-search-clear:hover {
-  color: var(--app-maroon);
+  color: #fff;
 }
 
 /* ---------- Groupes pliables (arborescence de dossiers) ---------- */
@@ -351,11 +378,11 @@ body {
   font-weight: 700 !important;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  color: var(--app-ink) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
 }
 
 .sidebar-group-toggle:hover {
-  background: var(--app-surface-sunken) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .sidebar-group-toggle .nav-icon:first-child svg {
@@ -369,7 +396,7 @@ body {
 }
 
 .sidebar-group-toggle .nav-icon:nth-child(2) {
-  color: var(--app-maroon);
+  color: var(--app-gold);
 }
 
 .sidebar-subitem {
@@ -380,18 +407,18 @@ body {
 .sidebar-group-empty {
   padding: 6px 12px 6px 30px;
   font-size: 12px;
-  color: var(--app-muted);
+  color: rgba(255, 255, 255, 0.55);
   font-style: italic;
 }
 
 .sidebar-nav button {
   all: unset;
   cursor: pointer;
-  padding: 7px 10px;
-  border-radius: var(--app-radius);
+  padding: 8px 12px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--app-ink);
+  color: #F3E6E6;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -399,20 +426,20 @@ body {
 }
 
 .sidebar-nav button:hover {
-  background: var(--app-surface-sunken);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .sidebar-nav button.active {
-  background: var(--app-maroon-soft);
+  background: #fff;
   color: var(--app-maroon-dark);
   font-weight: 700;
-  box-shadow: inset 3px 0 0 var(--app-maroon);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
 .sidebar-nav .nav-icon {
   display: flex;
   flex: none;
-  color: var(--app-muted);
+  color: rgba(255, 255, 255, 0.65);
   transition: color 0.1s ease;
 }
 
@@ -422,7 +449,7 @@ body {
 }
 
 .sidebar-nav button.active .nav-icon {
-  color: var(--app-maroon);
+  color: var(--app-gold);
 }
 
 /* ---------- Main ---------- */
@@ -478,19 +505,35 @@ body {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius);
   padding: 12px 14px;
+  box-shadow: var(--shadow-card);
 }
 
 .kpi-icon {
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--app-radius);
+  border-radius: var(--app-radius-sm);
   background: var(--app-surface-sunken);
-  color: var(--app-ink);
-  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+  border: 1px solid transparent;
+}
+
+.kpi-card-gold .kpi-icon {
+  background: var(--app-gold-soft);
+  color: var(--app-gold);
+}
+
+.kpi-card-teal .kpi-icon {
+  background: var(--app-teal-soft);
+  color: var(--app-teal);
+}
+
+.kpi-card-maroon .kpi-icon {
+  background: var(--app-maroon-soft);
+  color: var(--app-maroon);
 }
 
 .kpi-icon svg {
@@ -536,6 +579,7 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
 }
 
 .card-header {
@@ -568,7 +612,7 @@ body {
   font-weight: 600;
   font-size: 12.5px;
   padding: 6px 12px;
-  border-radius: var(--app-radius);
+  border-radius: var(--app-radius-sm);
   background: var(--app-maroon);
   color: #fff;
   border: 1px solid var(--app-maroon-dark);
@@ -610,22 +654,16 @@ thead th {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--app-ink);
-  padding: 8px 14px;
+  padding: 10px 14px;
   background: var(--app-surface-sunken);
   border-bottom: 1px solid var(--app-border-strong);
-  border-right: 1px solid var(--app-border);
 }
-
-thead th:last-child { border-right: none; }
 
 tbody td {
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--app-border);
-  border-right: 1px solid var(--app-border);
   vertical-align: middle;
 }
-
-tbody td:last-child { border-right: none; }
 
 tbody tr:last-child td { border-bottom: none; }
 
@@ -638,8 +676,8 @@ tbody tr:hover { background: var(--app-maroon-soft); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 7px;
-  border-radius: 2px;
+  padding: 3px 9px;
+  border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -665,11 +703,12 @@ tbody tr:hover { background: var(--app-maroon-soft); }
 }
 
 .chain .link {
-  padding: 1px 6px;
-  background: var(--app-surface-sunken);
-  border: 1px solid var(--app-border);
-  border-radius: 2px;
-  color: var(--app-ink);
+  padding: 2px 8px;
+  background: var(--app-teal-soft);
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-sm);
+  color: var(--app-teal);
+  font-weight: 600;
 }
 
 .chain .sep {
@@ -705,10 +744,18 @@ tbody tr:hover { background: var(--app-maroon-soft); }
 .form-field textarea {
   font-family: var(--font-body);
   font-size: 13px;
-  padding: 6px 8px;
+  padding: 7px 10px;
   border: 1px solid var(--app-border-strong);
-  border-radius: 2px;
+  border-radius: var(--app-radius-sm);
   background: #fff;
+  transition: border-color 0.15s ease;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--app-maroon);
 }
 
 .form-actions {
@@ -739,9 +786,9 @@ tbody tr:hover { background: var(--app-maroon-soft); }
 .filters-bar input {
   font-family: var(--font-body);
   font-size: 12.5px;
-  padding: 5px 8px;
+  padding: 6px 10px;
   border: 1px solid var(--app-border-strong);
-  border-radius: 2px;
+  border-radius: var(--app-radius-sm);
   background: #fff;
 }
 
@@ -850,11 +897,12 @@ tbody tr:hover { background: var(--app-maroon-soft); }
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--app-muted);
-  background: var(--app-surface-sunken);
-  border: 1px solid var(--app-border);
-  padding: 1px 7px;
-  border-radius: 2px;
+  color: var(--app-teal);
+  background: var(--app-teal-soft);
+  border: 1px solid transparent;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
 }
 
 .tree-count {

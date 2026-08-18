@@ -6,10 +6,6 @@ dist/
 build/
 out/
 
-# Power Platform Code App: real environment/app identifiers — never commit,
-# see power.config.example.json for the shape without secrets.
-firstmaint-app/power.config.json
-
 # Unused stray scaffold left over from `npm create vite` inside firstmaint-app/
 firstmaint-app/firsmaint-app/
 

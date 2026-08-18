@@ -1,9 +1,10 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-   import { defineConfig } from 'vite'
-    import react from '@vitejs/plugin-react'
-     import { powerApps } from '@microsoft/power-apps-vite/plugin'
-      export default defineConfig({
-        plugins: [react(), powerApps()],
-        server: {
-          port: 3000
-         }, build: { assetsInlineLimit: 0 } })
+export default defineConfig({
+  plugins: [react()],
+  base: './',
+  build: {
+    assetsInlineLimit: 0,
+  },
+})

@@ -9,15 +9,70 @@ export const ROLES = ['Gestionnaire DMG', 'Responsable de site', 'Technicien / P
 // Seuil au-delà duquel une validation de paiement exige deux valideurs distincts.
 export const SEUIL_DOUBLE_VALIDATION = 500000
 
+// Hiérarchie patrimoniale : Siège Social (Yaoundé) > Agences (une par grande
+// ville, couvrant les 10 régions du Cameroun) > Étages > Salles. Les identifiants
+// emp-1 à emp-8 sont conservés tels quels (référencés par actifs/tickets/clés/
+// projets/énergie ci-dessous) ; seuls leurs libellés et rattachements ont été
+// précisés pour refléter des sites réels.
 export const emplacements = [
-  { id: 'emp-1', nom: 'Siège Social', type: 'Siège', parentId: null },
-  { id: 'emp-6', nom: 'Étage 1', type: 'Étage', parentId: 'emp-1' },
-  { id: 'emp-7', nom: 'Salle informatique', type: 'Salle', parentId: 'emp-6' },
-  { id: 'emp-2', nom: 'Agence Douala Akwa', type: 'Agence', parentId: null },
+  // ---- Siège Social — Yaoundé (Centre) --------------------------------------
+  { id: 'emp-1', nom: 'Siège Social Yaoundé — Boulevard de la Liberté', type: 'Siège', parentId: null },
+  { id: 'emp-6', nom: 'Étage 1 — Direction Générale', type: 'Étage', parentId: 'emp-1' },
+  { id: 'emp-7', nom: 'Salle informatique — Datacenter Siège', type: 'Salle', parentId: 'emp-6' },
+  { id: 'emp-9', nom: 'Étage 2 — Direction des Systèmes d\'Information', type: 'Étage', parentId: 'emp-1' },
+  { id: 'emp-10', nom: 'Rez-de-chaussée — Hall d\'accueil Siège', type: 'Étage', parentId: 'emp-1' },
+
+  // ---- Agences — Littoral -----------------------------------------------------
+  { id: 'emp-2', nom: 'Agence Douala Akwa', type: 'Agence', parentId: 'emp-1' },
   { id: 'emp-3', nom: 'Étage 2', type: 'Étage', parentId: 'emp-2' },
   { id: 'emp-4', nom: 'Salle serveur', type: 'Salle', parentId: 'emp-3' },
-  { id: 'emp-5', nom: 'Agence Yaoundé Centre', type: 'Agence', parentId: null },
+  { id: 'emp-11', nom: 'Agence Douala Bonanjo', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-12', nom: 'Étage 1', type: 'Étage', parentId: 'emp-11' },
+  { id: 'emp-13', nom: 'Salle technique', type: 'Salle', parentId: 'emp-12' },
+
+  // ---- Agences — Centre (hors siège) -------------------------------------------
+  { id: 'emp-5', nom: 'Agence Yaoundé Centre', type: 'Agence', parentId: 'emp-1' },
   { id: 'emp-8', nom: 'Rez-de-chaussée', type: 'Étage', parentId: 'emp-5' },
+  { id: 'emp-14', nom: 'Agence Yaoundé Bastos', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-15', nom: 'Étage 1', type: 'Étage', parentId: 'emp-14' },
+  { id: 'emp-16', nom: 'Salle technique', type: 'Salle', parentId: 'emp-15' },
+
+  // ---- Agences — Ouest ----------------------------------------------------------
+  { id: 'emp-17', nom: 'Agence Bafoussam', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-18', nom: 'Étage 1', type: 'Étage', parentId: 'emp-17' },
+  { id: 'emp-19', nom: 'Salle serveur', type: 'Salle', parentId: 'emp-18' },
+
+  // ---- Agences — Nord-Ouest -------------------------------------------------------
+  { id: 'emp-20', nom: 'Agence Bamenda', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-21', nom: 'Étage 1', type: 'Étage', parentId: 'emp-20' },
+  { id: 'emp-22', nom: 'Salle technique', type: 'Salle', parentId: 'emp-21' },
+
+  // ---- Agences — Sud-Ouest --------------------------------------------------------
+  { id: 'emp-23', nom: 'Agence Buea', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-24', nom: 'Rez-de-chaussée', type: 'Étage', parentId: 'emp-23' },
+  { id: 'emp-25', nom: 'Salle serveur', type: 'Salle', parentId: 'emp-24' },
+
+  // ---- Agences — Extrême-Nord -------------------------------------------------------
+  { id: 'emp-26', nom: 'Agence Maroua', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-27', nom: 'Étage 1', type: 'Étage', parentId: 'emp-26' },
+  { id: 'emp-28', nom: 'Salle technique', type: 'Salle', parentId: 'emp-27' },
+
+  // ---- Agences — Nord ----------------------------------------------------------------
+  { id: 'emp-29', nom: 'Agence Garoua', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-30', nom: 'Étage 1', type: 'Étage', parentId: 'emp-29' },
+  { id: 'emp-31', nom: 'Salle serveur', type: 'Salle', parentId: 'emp-30' },
+
+  // ---- Agences — Adamaoua -----------------------------------------------------------
+  { id: 'emp-32', nom: 'Agence Ngaoundéré', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-33', nom: 'Rez-de-chaussée', type: 'Étage', parentId: 'emp-32' },
+
+  // ---- Agences — Sud ------------------------------------------------------------------
+  { id: 'emp-34', nom: 'Agence Kribi', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-35', nom: 'Étage 1', type: 'Étage', parentId: 'emp-34' },
+
+  // ---- Agences — Est -------------------------------------------------------------------
+  { id: 'emp-36', nom: 'Agence Bertoua', type: 'Agence', parentId: 'emp-1' },
+  { id: 'emp-37', nom: 'Étage 1', type: 'Étage', parentId: 'emp-36' },
 ]
 
 // Familles d'équipement (workflows v2.0, principe directeur 2 — structuration par

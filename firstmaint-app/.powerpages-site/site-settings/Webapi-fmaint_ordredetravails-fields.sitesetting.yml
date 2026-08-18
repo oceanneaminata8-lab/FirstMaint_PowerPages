@@ -1,0 +1,3 @@
+id: 13443585-5a73-4eb4-ab11-6a6a09d06ba9
+name: Webapi/fmaint_ordredetravails/fields
+value: fmaint_nomordre,fmaint_urgent,fmaint_technicienid,fmaint_dateintervention,fmaint_dureeheures

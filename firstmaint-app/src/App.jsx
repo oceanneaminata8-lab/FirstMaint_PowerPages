@@ -24,6 +24,7 @@ import { ConsommationEnergie } from './components/ConsommationEnergie.jsx'
 import { Utilisateurs } from './components/Utilisateurs.jsx'
 import * as dataService from './services/dataService.js'
 import { executerMoteurRegles } from './services/automationEngine.js'
+import { getPortalUser, deconnexionPortail } from './services/portalAuth.js'
 import { ROLES } from './data/mockData.js'
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
 
   const [ongletActif, setOngletActif] = useState('dashboard')
   const [chargement, setChargement] = useState(true)
+  const [erreurChargement, setErreurChargement] = useState(null)
   // Site du Responsable de site connecté (US-01, point d'attention 1.6 —
   // sécurité par ligne) : null pour les autres rôles, qui voient tout.
   const [siteId, setSiteId] = useState(null)
@@ -108,77 +110,83 @@ export default function App() {
   // seules les fonctions dans dataService.js changeront de comportement.
   useEffect(() => {
     async function chargerDonnees() {
-      const [
-        emp, cat, act, ot, tk, hist, pm, ech, dma, fapi, rap, frs, ctr,
-        slar, slam, pen, vp, evals, clesData, mvc, proj, jal, taches, alertes, audit,
-        pr, mvs, nrj, utl,
-      ] = await Promise.all([
-        dataService.getEmplacements(),
-        dataService.getCategoriesActif(),
-        dataService.getActifs(),
-        dataService.getOrdresTravail(),
-        dataService.getTickets(),
-        dataService.getHistoriqueOrdreTravail(),
-        dataService.getPlansPreventifs(),
-        dataService.getEcheancesPlan(),
-        dataService.getDemandesModificationActif(),
-        dataService.getFichesAnalysePostIncident(),
-        dataService.getRapportsMensuels(),
-        dataService.getFournisseurs(),
-        dataService.getContrats(),
-        dataService.getSlaRules(),
-        dataService.getSlaMeasures(),
-        dataService.getPenalites(),
-        dataService.getValidationsPaiement(),
-        dataService.getEvaluationsPrestataires(),
-        dataService.getCles(),
-        dataService.getMouvementsCles(),
-        dataService.getProjetsImmobiliers(),
-        dataService.getJalonsProjets(),
-        dataService.getTachesWorkflow(),
-        dataService.getAlertesAutomatiques(),
-        dataService.getJournalAudit(),
-        dataService.getPiecesRechange(),
-        dataService.getMouvementsStock(),
-        dataService.getConsommationsEnergie(),
-        dataService.getUtilisateurs(),
-      ])
-      setEmplacements(emp)
-      setCategoriesActif(cat)
-      setActifs(act)
-      setOrdresTravail(ot)
-      setTickets(tk)
-      setHistoriqueOrdreTravail(hist)
-      setPlansPreventifs(pm)
-      setEcheancesPlan(ech)
-      setDemandesModificationActif(dma)
-      setFichesAnalysePostIncident(fapi)
-      setRapportsMensuels(rap)
-      setFournisseurs(frs)
-      setContrats(ctr)
-      setSlaRules(slar)
-      setSlaMeasures(slam)
-      setPenalites(pen)
-      setValidationsPaiement(vp)
-      setEvaluationsPrestataires(evals)
-      setCles(clesData)
-      setMouvementsCles(mvc)
-      setProjetsImmobiliers(proj)
-      setJalonsProjets(jal)
-      setTachesWorkflow(taches)
-      setAlertesAutomatiques(alertes)
-      setJournalAudit(audit)
-      setPiecesRechange(pr)
-      setMouvementsStock(mvs)
-      setConsommationsEnergie(nrj)
-      setUtilisateurs(utl)
-      setChargement(false)
+      try {
+        const [
+          emp, cat, act, ot, tk, hist, pm, ech, dma, fapi, rap, frs, ctr,
+          slar, slam, pen, vp, evals, clesData, mvc, proj, jal, taches, alertes, audit,
+          pr, mvs, nrj, utl,
+        ] = await Promise.all([
+          dataService.getEmplacements(),
+          dataService.getCategoriesActif(),
+          dataService.getActifs(),
+          dataService.getOrdresTravail(),
+          dataService.getTickets(),
+          dataService.getHistoriqueOrdreTravail(),
+          dataService.getPlansPreventifs(),
+          dataService.getEcheancesPlan(),
+          dataService.getDemandesModificationActif(),
+          dataService.getFichesAnalysePostIncident(),
+          dataService.getRapportsMensuels(),
+          dataService.getFournisseurs(),
+          dataService.getContrats(),
+          dataService.getSlaRules(),
+          dataService.getSlaMeasures(),
+          dataService.getPenalites(),
+          dataService.getValidationsPaiement(),
+          dataService.getEvaluationsPrestataires(),
+          dataService.getCles(),
+          dataService.getMouvementsCles(),
+          dataService.getProjetsImmobiliers(),
+          dataService.getJalonsProjets(),
+          dataService.getTachesWorkflow(),
+          dataService.getAlertesAutomatiques(),
+          dataService.getJournalAudit(),
+          dataService.getPiecesRechange(),
+          dataService.getMouvementsStock(),
+          dataService.getConsommationsEnergie(),
+          dataService.getUtilisateurs(),
+        ])
+        setEmplacements(emp)
+        setCategoriesActif(cat)
+        setActifs(act)
+        setOrdresTravail(ot)
+        setTickets(tk)
+        setHistoriqueOrdreTravail(hist)
+        setPlansPreventifs(pm)
+        setEcheancesPlan(ech)
+        setDemandesModificationActif(dma)
+        setFichesAnalysePostIncident(fapi)
+        setRapportsMensuels(rap)
+        setFournisseurs(frs)
+        setContrats(ctr)
+        setSlaRules(slar)
+        setSlaMeasures(slam)
+        setPenalites(pen)
+        setValidationsPaiement(vp)
+        setEvaluationsPrestataires(evals)
+        setCles(clesData)
+        setMouvementsCles(mvc)
+        setProjetsImmobiliers(proj)
+        setJalonsProjets(jal)
+        setTachesWorkflow(taches)
+        setAlertesAutomatiques(alertes)
+        setJournalAudit(audit)
+        setPiecesRechange(pr)
+        setMouvementsStock(mvs)
+        setConsommationsEnergie(nrj)
+        setUtilisateurs(utl)
 
-      // Passe unique du moteur de règles au démarrage (génération des OT préventifs
-      // en retard, alertes d'échéance, escalades, dépassements budgétaires) — cf.
-      // automationEngine.js. Idempotent, donc sans risque à chaque rechargement.
-      await executerMoteurRegles()
-      await rafraichirApresMoteur()
+        // Passe unique du moteur de règles au démarrage (génération des OT préventifs
+        // en retard, alertes d'échéance, escalades, dépassements budgétaires) — cf.
+        // automationEngine.js. Idempotent, donc sans risque à chaque rechargement.
+        await executerMoteurRegles()
+        await rafraichirApresMoteur()
+      } catch (error) {
+        console.error('Échec du chargement initial des données :', error)
+        setErreurChargement(error.message || 'Erreur inconnue.')
+      } finally {
+        setChargement(false)
+      }
     }
     chargerDonnees()
   }, [])
@@ -201,6 +209,12 @@ export default function App() {
   }
 
   function seDeconnecter() {
+    // Site connecté via Power Pages/Entra ID : on ferme la vraie session
+    // portail plutôt que de simplement revenir à l'écran d'accueil local.
+    if (getPortalUser()) {
+      deconnexionPortail()
+      return
+    }
     setUtilisateurEmail('')
     setOngletActif('dashboard')
     setActifSelectionneId(null)
@@ -550,7 +564,17 @@ export default function App() {
         <TopBar utilisateurEmail={utilisateurEmail} role={role} alertesNonLues={0} onNaviguer={changerOnglet} onDeconnexion={seDeconnecter} />
         <div className="app-body">
           <Sidebar active={ongletActif} onChange={changerOnglet} role={role} />
-          <main className="main"><p>Chargement des données…</p></main>
+          <main className="main">
+            {erreurChargement ? (
+              <p className="login-erreur">
+                Impossible de charger les données ({erreurChargement}). Vérifie que le site est bien
+                servi par Power Pages (les appels /_api ne fonctionnent pas en local) et que les
+                permissions de table sont configurées, puis recharge la page.
+              </p>
+            ) : (
+              <p>Chargement des données…</p>
+            )}
+          </main>
         </div>
       </div>
     )

@@ -1,12 +1,18 @@
 // ============================================================================
 // COUCHE DE SERVICE — point unique de contact avec les données.
 //
-// Tout passe encore par les tableaux fictifs de mockData.js (voir README —
-// aucun environnement Dataverse n'est réellement connecté en local pour
-// l'instant). Les services Dataverse générés dans src/generated/ restent en
-// place, prêts pour un rebranchement ultérieur, mais ne sont plus appelés ici
-// afin que lecture et écriture opèrent toujours sur la même source de vérité.
+// Les fonctions de LECTURE des 7 tables réellement présentes dans Dataverse
+// (Actif, Emplacement, Categorie d'actif, Agence, Technicien, Ordre de
+// travail, Ticket) sont maintenant branchées sur les vraies données.
+//
+// Tout le reste (création, changements de statut, workflow métier détaillé,
+// SLA, clés, projets immobiliers, énergie, utilisateurs, audit...) continue
+// d'utiliser mockData.js, car ces tables/colonnes n'existent pas encore dans
+// Dataverse — voir le document "Analyse d'écart" pour le détail de ce qui
+// resterait à créer.
 // ============================================================================
+
+import { portalGet, portalPost, getFormatted } from './portalApi.js'
 import {
   actifs as mockActifs,
   emplacements as mockEmplacements,
@@ -73,7 +79,13 @@ const simulateDelay = (data, ms = 300) =>
 
 // ---- Emplacements ----------------------------------------------------------
 export async function getEmplacements() {
-  return simulateDelay(mockEmplacements)
+  const rows = await portalGet('fmaint_emplacements', '?$select=fmaint_emplacementid,fmaint_nom,fmaint_type,_fmaint_emplacementparent_value')
+  return rows.map((r) => ({
+    id: r.fmaint_emplacementid,
+    nom: r.fmaint_nom,
+    type: getFormatted(r, 'fmaint_type') || 'Agence',
+    parentId: r._fmaint_emplacementparent_value || null,
+  }))
 }
 
 export async function createEmplacement(nouvelEmplacement) {
@@ -84,7 +96,13 @@ export async function createEmplacement(nouvelEmplacement) {
 
 // ---- Catégories d'actif (Archives de base) -----------------------------------------
 export async function getCategoriesActif() {
-  return simulateDelay(mockCategories)
+  const rows = await portalGet('fmaint_categoriedactifs', '?$select=fmaint_categoriedactifid,fmaint_nomdelacategorie,fmaint_description')
+  return rows.map((r) => ({
+    id: r.fmaint_categoriedactifid,
+    nom: r.fmaint_nomdelacategorie,
+    description: r.fmaint_description || '',
+    criticiteParDefaut: 'Moyenne',
+  }))
 }
 
 export async function createCategorieActif(nouvelleCategorie) {
@@ -93,9 +111,45 @@ export async function createCategorieActif(nouvelleCategorie) {
   return simulateDelay(categorie)
 }
 
+// ---- Agences (nouveau — table Dataverse fmaint_agences) ----------------------
+export async function getAgences() {
+  const rows = await portalGet('fmaint_agences', '?$select=fmaint_agenceid,fmaint_nomagence,fmaint_telephone')
+  return rows.map((r) => ({
+    id: r.fmaint_agenceid,
+    nom: r.fmaint_nomagence,
+    telephone: r.fmaint_telephone || '',
+  }))
+}
+
+// ---- Techniciens (nouveau — table Dataverse fmaint_techniciens) --------------
+export async function getTechniciens() {
+  const rows = await portalGet('fmaint_techniciens', '?$select=fmaint_technicienid,fmaint_nomtechnicien,fmaint_telephone')
+  return rows.map((r) => ({
+    id: r.fmaint_technicienid,
+    nom: r.fmaint_nomtechnicien,
+    telephone: r.fmaint_telephone || '',
+  }))
+}
+
 // ---- Actifs -----------------------------------------------------------------
 export async function getActifs() {
-  return simulateDelay(mockActifs)
+  const rows = await portalGet('fmaint_actifs', '?$select=fmaint_actifid,fmaint_nom,fmaint_numerodeserie,fmaint_statut,_fmaint_emplacementid_value,_fmaint_categoriedactifid_value,fmaint_datedacquisition,fmaint_datedefindegarantie,fmaint_valeur')
+  return rows.map((r) => ({
+    id: r.fmaint_actifid,
+    nom: r.fmaint_nom,
+    numeroSerie: r.fmaint_numerodeserie,
+    statut: getFormatted(r, 'fmaint_statut') || 'En service',
+    emplacementId: r._fmaint_emplacementid_value,
+    categorieId: r._fmaint_categoriedactifid_value,
+    dateAcquisition: r.fmaint_datedacquisition ? r.fmaint_datedacquisition.slice(0, 10) : null,
+    dateFinGarantie: r.fmaint_datedefindegarantie ? r.fmaint_datedefindegarantie.slice(0, 10) : null,
+    valeur: r.fmaint_valeur || 0,
+    // Champs du cahier des charges V2 non encore présents dans Dataverse — valeurs par défaut :
+    etatCycleVie: 'Actif',
+    criticite: 'Moyenne',
+    codeInventaire: null,
+    piecesJointes: [],
+  }))
 }
 
 // Nouvel actif : entre en "En saisie" (workflows v2.0, section 1.2 — cycle de
@@ -330,7 +384,21 @@ export async function importActifsCsv(lignes) {
 
 // ---- Ordres de travail -------------------------------------------------------
 export async function getOrdresTravail() {
-  return simulateDelay(mockOrdresTravail)
+  const rows = await portalGet('fmaint_ordredetravails', '?$select=fmaint_ordredetravailid,fmaint_nomordre,statecode,fmaint_urgent,_fmaint_technicienid_value,fmaint_dateintervention,fmaint_dureeheures')
+  return rows.map((r) => ({
+    id: r.fmaint_ordredetravailid,
+    numero: r.fmaint_nomordre,
+    titre: r.fmaint_nomordre,
+    statut: getFormatted(r, 'statecode') || 'Nouveau',
+    priorite: r.fmaint_urgent ? 'Critique' : 'Moyenne',
+    technicien: getFormatted(r, '_fmaint_technicienid_value') || null,
+    dateEcheance: r.fmaint_dateintervention ? r.fmaint_dateintervention.slice(0, 10) : null,
+    dureeHeures: r.fmaint_dureeheures || 0,
+    actifId: null,
+    checklist: [],
+    piecesJointes: [],
+    origine: 'Corrective',
+  }))
 }
 
 // Numérotation distincte préventif/correctif (US-03, étape 1 : préfixe PREV
@@ -681,20 +749,40 @@ export async function getRapportsMensuels() {
 
 // ---- Tickets ------------------------------------------------------------------
 export async function getTickets() {
-  return simulateDelay(mockTickets)
-}
-
-export async function createTicket(nouveauTicket) {
-  const ticket = {
-    id: `tk-${Date.now()}`,
-    statut: 'Ouvert',
+  const rows = await portalGet('fmaint_tickets', '?$select=fmaint_ticketid,fmaint_titre,fmaint_description,statecode,_fmaint_agenceid_value,fmaint_urgence')
+  return rows.map((r) => ({
+    id: r.fmaint_ticketid,
+    titre: r.fmaint_titre,
+    description: r.fmaint_description,
+    statut: getFormatted(r, 'statecode') || 'Ouvert',
+    emplacementId: r._fmaint_agenceid_value,
+    urgence: getFormatted(r, 'fmaint_urgence') || 'Moyenne',
     ordreTravailId: null,
     piecesJointes: [],
-    urgence: 'Moyenne',
-    ...nouveauTicket,
+  }))
+}
+const URGENCE_CODES = { Faible: 607570000, Moyenne: 607570001, Haute: 607570002 }
+const URGENCE_LABELS = { 607570000: 'Faible', 607570001: 'Moyenne', 607570002: 'Haute' }
+export async function createTicket(nouveauTicket) {
+  const payload = {
+    fmaint_titre: nouveauTicket.titre,
+    fmaint_description: nouveauTicket.description || '',
+    fmaint_urgence: URGENCE_CODES[nouveauTicket.urgence] || URGENCE_CODES.Moyenne,
   }
-  mockTickets.push(ticket)
-  return simulateDelay(ticket)
+  if (nouveauTicket.emplacementId) {
+    payload['fmaint_AgenceID@odata.bind'] = `/fmaint_agences(${nouveauTicket.emplacementId})`
+  }
+  const r = await portalPost('fmaint_tickets', payload)
+  return {
+    id: r.fmaint_ticketid,
+    titre: r.fmaint_titre,
+    description: r.fmaint_description,
+    statut: getFormatted(r, 'statecode') || 'Ouvert',
+    emplacementId: r._fmaint_agenceid_value || nouveauTicket.emplacementId || null,
+    urgence: URGENCE_LABELS[r.fmaint_urgence] || nouveauTicket.urgence || 'Moyenne',
+    ordreTravailId: null,
+    piecesJointes: [],
+  }
 }
 
 export async function updateTicketStatut(id, statut) {
@@ -838,14 +926,14 @@ export async function validerDateIntervention(id, date, auteur = 'Système') {
 export async function signalerAnomaliePreventif(otPreventifId, description) {
   const otSource = mockOrdresTravail.find((o) => o.id === otPreventifId)
   if (!otSource) return null
+
   return createOrdreTravail({
-    titre: `Anomalie détectée — ${otSource.titre}`,
+    titre: `Anomalie détectée pendant OT préventif ${otSource.numero} — ${description}`,
     description,
     priorite: 'Haute',
     origine: 'Corrective',
-    actifId: otSource.actifId,
-    technicien: otSource.technicien,
     otPreventifSourceId: otSource.id,
+    actifId: otSource.actifId,
   })
 }
 

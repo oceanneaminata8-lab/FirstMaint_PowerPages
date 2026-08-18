@@ -499,7 +499,7 @@ adx_webfile:
   IsDeleted: false
 - RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
   DisplayName: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
-  CheckSum: 50426aae3a1f45b77d351ca3189b416b58d5c6968e59000f23472fea7c9df9ae
+  CheckSum: eea4877dcce0d0a193dc9e29bdc777d0c467789005f12d2405e5e4eb66a39bbf
   IsDeleted: false
 - RecordId: 563b9a03-5411-45d5-b9a0-ee5589baa986
   DisplayName: 563b9a03-5411-45d5-b9a0-ee5589baa986
@@ -624,7 +624,7 @@ adx_webfile:
 - RecordId: 9a2eb4b2-1267-4ebd-b0bb-77252b909c96
   DisplayName: 9a2eb4b2-1267-4ebd-b0bb-77252b909c96
   CheckSum: 6e8ad5fb1752a8a9c9aa5abb6b4623502f66d0dc36bc1abf0795525d80621ec2
-  IsDeleted: false
+  IsDeleted: true
 - RecordId: 9dc0739f-87cd-4155-9d5f-25ce7404c003
   DisplayName: 9dc0739f-87cd-4155-9d5f-25ce7404c003
   CheckSum: 2884d0a97cc4ee9798912d29fc677f2d6f1e9b3b78e3f7a9bc0afb6e9e500366
@@ -778,7 +778,7 @@ adx_webpage:
   IsDeleted: false
 - RecordId: a2775837-9eb2-4acd-b790-62dc2f1ce084
   DisplayName: a2775837-9eb2-4acd-b790-62dc2f1ce084
-  CheckSum: 50eed8d0e0a86a8106ae05d20c19e8d3b9b6059855a578976b508d7369fc7970
+  CheckSum: 906977e035fd1ee98e681eeaa3619244b22db3f8df1581fc1877a9d9bba29274
   IsDeleted: false
 - RecordId: b4e53914-c5ab-4508-8a9e-d0103342b095
   DisplayName: b4e53914-c5ab-4508-8a9e-d0103342b095
@@ -1051,7 +1051,7 @@ annotation:
   IsDeleted: false
 - RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
   DisplayName: index.html
-  CheckSum: 58a8845bae8587562c946bdcf77a1a9c3469f5292674ac5b81bc7b0e6102ca9a
+  CheckSum: 92a0ca960b7eb300f986fdeadd1bc7a84c89afd528cf8fc5fd1e57ccf8387fb7
   IsDeleted: false
 - RecordId: 563b9a03-5411-45d5-b9a0-ee5589baa986
   DisplayName: space-grotesk-latin-ext-600-normal-DxxdqCpr.woff2
@@ -1176,7 +1176,7 @@ annotation:
 - RecordId: 9a2eb4b2-1267-4ebd-b0bb-77252b909c96
   DisplayName: index-D0XTBHK-.css
   CheckSum: dd0fdb1d9abbfb22c7fb1dddae229bcb15ce587b88b947137716fc580918496e
-  IsDeleted: false
+  IsDeleted: true
 - RecordId: 9dc0739f-87cd-4155-9d5f-25ce7404c003
   DisplayName: inter-latin-700-normal-BLAVimhd.woff
   CheckSum: 0e9db7e3411b0a494e250fa70cbf714b657eb6244663eb19b450f4753d9862d8

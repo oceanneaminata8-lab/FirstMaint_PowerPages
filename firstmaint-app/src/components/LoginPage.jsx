@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import logoFirstMaint from '../images/company-logo-transparent.png'
 import heroBackground from '../images/hero-background.jpeg'
-import { Icon } from './Icons.jsx'
-import { ROLES } from '../data/mockData.js'
 
 const STATS = [
   { valeur: '1987', label: 'Année de création' },
@@ -10,32 +8,29 @@ const STATS = [
   { valeur: 'Yaoundé', label: 'Siège du Groupe' },
 ]
 
-// Connexion en mode démonstration : aucune vérification côté serveur pour
-// l'instant, seuls les champs sont validés. L'authentification réelle sera
-// branchée sur Dataverse / Azure AD plus tard.
-// Le sélecteur de profil détermine l'affichage différencié par profil requis
-// par le cahier des charges (US-06) : il filtre le menu et les tableaux de bord.
-export function LoginPage({ onConnexion, onRetour, emplacements = [] }) {
+// Connexion par email uniquement : le rôle n'est jamais saisi ici, il est
+// retrouvé (ou attribué par défaut au premier accès) côté Dataverse par
+// onConnexion — voir seConnecter dans App.jsx. Personne ne peut donc
+// s'attribuer un profil en le choisissant dans ce formulaire.
+export function LoginPage({ onConnexion, onRetour }) {
   const [identifiant, setIdentifiant] = useState('')
-  const [motDePasse, setMotDePasse] = useState('')
-  const [motDePasseVisible, setMotDePasseVisible] = useState(false)
-  const [role, setRole] = useState(ROLES[0])
-  const sitesRacine = emplacements.filter((e) => !e.parentId)
-  const [siteId, setSiteId] = useState('')
+  const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState('')
 
-  function soumettre(e) {
+  async function soumettre(e) {
     e.preventDefault()
-    if (!identifiant.trim() || !motDePasse.trim()) {
-      setErreur('Veuillez renseigner votre email d\'utilisateur et votre mot de passe.')
+    if (!identifiant.trim()) {
+      setErreur('Veuillez renseigner votre adresse email.')
       return
     }
     setErreur('')
-    onConnexion(identifiant, role, siteId)
-  }
-
-  function ouvrirApplication() {
-    onConnexion(identifiant.trim() || 'demo@afrilandfirstbank.com', role, siteId)
+    setEnCours(true)
+    try {
+      await onConnexion(identifiant.trim())
+    } catch (error) {
+      setErreur(error.message || 'Échec de connexion. Veuillez réessayer.')
+      setEnCours(false)
+    }
   }
 
   return (
@@ -78,8 +73,9 @@ export function LoginPage({ onConnexion, onRetour, emplacements = [] }) {
             <span className="accent">Afriland</span>
           </h1>
           <p className="login-subtitle">
-            Connexion au système FirstMaint. Authentifiez-vous pour accéder à
-            votre espace de gestion de maintenance.
+            Connexion au système FirstMaint. Renseignez votre adresse email
+            professionnelle pour accéder à votre espace de gestion de
+            maintenance — votre profil est déterminé automatiquement.
           </p>
 
           <form onSubmit={soumettre} className="login-form">
@@ -93,52 +89,18 @@ export function LoginPage({ onConnexion, onRetour, emplacements = [] }) {
                 autoFocus
               />
             </div>
-            <div className="form-field">
-              <label>Mot de passe</label>
-              <div className="login-password-field">
-                <input
-                  type={motDePasseVisible ? 'text' : 'password'}
-                  value={motDePasse}
-                  onChange={(e) => setMotDePasse(e.target.value)}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="login-password-toggle"
-                  onClick={() => setMotDePasseVisible((v) => !v)}
-                  aria-label={motDePasseVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                >
-                  <Icon type={motDePasseVisible ? 'oeil-barre' : 'oeil'} />
-                </button>
-              </div>
-            </div>
-            <div className="form-field">
-              <label>Profil</label>
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-
-            {role === 'Responsable de site' && (
-              <div className="form-field">
-                <label>Site (sécurité par ligne — vous ne verrez que ce site)</label>
-                <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
-                  <option value="">Tous les sites (démonstration)</option>
-                  {sitesRacine.map((s) => <option key={s.id} value={s.id}>{s.nom}</option>)}
-                </select>
-              </div>
-            )}
 
             {erreur && <div className="login-erreur">{erreur}</div>}
 
-            <button type="submit" className="login-card-submit">Connexion</button>
+            <button type="submit" className="login-card-submit" disabled={enCours}>
+              {enCours ? 'Connexion en cours…' : 'Connexion'}
+            </button>
           </form>
 
           <div className="login-card-divider" />
 
           <div className="login-card-links">
             <button className="link-button" onClick={onRetour}>Retour à l'accueil</button>
-            <button className="link-button" onClick={ouvrirApplication}>Ouvrir l'application</button>
           </div>
 
           <p className="login-card-footnote">FirstMaint — Afriland First Bank — {new Date().getFullYear()}</p>

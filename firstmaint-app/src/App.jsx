@@ -222,14 +222,16 @@ export default function App() {
       })
   }, [])
 
-  // Connexion de démonstration (formulaire local) — remise en place le temps
-  // que le fournisseur d'identité Entra ID soit configuré côté portail
-  // (Azure AD + Power Pages) ; le useEffect ci-dessus reprendra la main
-  // automatiquement dès qu'une vraie session Power Pages existera.
-  function seConnecter(email, roleChoisi, siteChoisiId) {
-    setUtilisateurEmail(email)
-    setRole(roleChoisi || ROLES[0])
-    setSiteId(roleChoisi === 'Responsable de site' ? (siteChoisiId || null) : null)
+  // Connexion par email — le rôle n'est jamais saisi par l'utilisateur : on
+  // retrouve (ou crée avec le rôle le moins privilégié) son enregistrement
+  // Utilisateur réel dans Dataverse, exactement comme le ferait une vraie
+  // session Entra ID (cf. useEffect ci-dessus). Évite qu'un utilisateur
+  // puisse s'auto-attribuer un rôle en le choisissant dans un formulaire.
+  async function seConnecter(email) {
+    const utilisateur = await dataService.getOrCreateUtilisateurCourant(email, email)
+    setUtilisateurEmail(utilisateur.email)
+    setRole(utilisateur.role || ROLES[0])
+    setSiteId(utilisateur.siteId || null)
     setVue('app')
   }
 
@@ -592,7 +594,7 @@ export default function App() {
   }
 
   if (vue === 'login') {
-    return <LoginPage onConnexion={seConnecter} onRetour={() => setVue('landing')} emplacements={emplacements} />
+    return <LoginPage onConnexion={seConnecter} onRetour={() => setVue('landing')} />
   }
 
   if (chargement) {

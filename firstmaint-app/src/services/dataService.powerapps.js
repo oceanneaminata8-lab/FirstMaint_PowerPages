@@ -13,9 +13,14 @@ import { getFormatted } from './portalApi.js'
 import {
   mockActifs,
   mockOrdresTravail,
+  mockEmplacements,
+  mockCategories,
   dateEcheanceParCriticite,
   prochainNumeroOt,
   ajouterAudit,
+  genererProchainCodeInventaire,
+  STATUT_ACTIF_CODES,
+  TYPE_EMPLACEMENT_CODES,
 } from './dataService.js'
 
 const PREFER_FORMATTED_VALUES = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"'
@@ -73,6 +78,20 @@ export async function getEmplacements() {
   }))
 }
 
+export async function createEmplacement(nouvelEmplacement) {
+  const payload = { fmaint_nom: nouvelEmplacement.nom }
+  const typeCode = TYPE_EMPLACEMENT_CODES[nouvelEmplacement.type]
+  if (typeCode !== undefined) payload.fmaint_type = typeCode
+  if (nouvelEmplacement.parentId) {
+    payload['fmaint_Emplacementparent@odata.bind'] = `/fmaint_emplacements(${nouvelEmplacement.parentId})`
+  }
+  const r = await createRecord('fmaint_emplacements', payload)
+
+  const emplacement = { parentId: null, ...nouvelEmplacement, id: r.fmaint_emplacementid }
+  mockEmplacements.push(emplacement)
+  return emplacement
+}
+
 // ---- Catégories d'actif -----------------------------------------------------
 export async function getCategoriesActif() {
   const rows = await listRecords('fmaint_categoriedactifs', 'fmaint_categoriedactifid,fmaint_nomdelacategorie,fmaint_description')
@@ -82,6 +101,18 @@ export async function getCategoriesActif() {
     description: r.fmaint_description || '',
     criticiteParDefaut: 'Moyenne',
   }))
+}
+
+export async function createCategorieActif(nouvelleCategorie) {
+  const payload = {
+    fmaint_nomdelacategorie: nouvelleCategorie.nom,
+    fmaint_description: nouvelleCategorie.description || '',
+  }
+  const r = await createRecord('fmaint_categoriedactifs', payload)
+
+  const categorie = { ...nouvelleCategorie, id: r.fmaint_categoriedactifid }
+  mockCategories.push(categorie)
+  return categorie
 }
 
 // ---- Agences -----------------------------------------------------------------
@@ -122,6 +153,57 @@ export async function getActifs() {
     codeInventaire: null,
     piecesJointes: [],
   }))
+}
+
+export async function createActif(nouvelActif) {
+  const categorie = mockCategories.find((c) => c.id === nouvelActif.categorieId)
+  const codeInventaire = await genererProchainCodeInventaire()
+
+  const payload = {
+    fmaint_nom: nouvelActif.nom,
+    fmaint_numerodeserie: nouvelActif.numeroSerie || '',
+    fmaint_statut: STATUT_ACTIF_CODES[nouvelActif.statut] ?? STATUT_ACTIF_CODES['En service'],
+    fmaint_valeur: Number(nouvelActif.valeur) || 0,
+  }
+  if (nouvelActif.dateAcquisition) payload.fmaint_datedacquisition = nouvelActif.dateAcquisition
+  if (nouvelActif.dateFinGarantie) payload.fmaint_datedefindegarantie = nouvelActif.dateFinGarantie
+  if (nouvelActif.emplacementId) payload['fmaint_EmplacementID@odata.bind'] = `/fmaint_emplacements(${nouvelActif.emplacementId})`
+  if (nouvelActif.categorieId) payload['fmaint_CategoriedactifID@odata.bind'] = `/fmaint_categoriedactifs(${nouvelActif.categorieId})`
+  const r = await createRecord('fmaint_actifs', payload)
+
+  const actif = {
+    etatCycleVie: 'En saisie',
+    piecesJointes: [],
+    criticite: categorie?.criticiteParDefaut || 'Moyenne',
+    ...nouvelActif,
+    id: r.fmaint_actifid,
+    codeInventaire,
+  }
+  mockActifs.push(actif)
+  await ajouterAudit({
+    action: 'Actif — créé (En saisie)',
+    entite: 'actif', entiteId: actif.id, auteur: 'Système', details: actif.nom,
+  })
+  return actif
+}
+
+export async function updateActifStatut(id, statut) {
+  const code = STATUT_ACTIF_CODES[statut]
+  if (code !== undefined) {
+    await updateRecord('fmaint_actifs', id, { fmaint_statut: code })
+  }
+  const actif = mockActifs.find((a) => a.id === id)
+  if (actif) {
+    actif.statut = statut
+    await ajouterAudit({
+      action: `Actif — statut changé en "${statut}"`,
+      entite: 'actif',
+      entiteId: id,
+      auteur: 'Système',
+      details: actif.nom,
+    })
+  }
+  return actif
 }
 
 // ---- Ordres de travail -------------------------------------------------------

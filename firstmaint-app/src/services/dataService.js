@@ -3,13 +3,20 @@
 //
 // Les fonctions de LECTURE des 7 tables réellement présentes dans Dataverse
 // (Actif, Emplacement, Categorie d'actif, Agence, Technicien, Ordre de
-// travail, Ticket) sont maintenant branchées sur les vraies données.
+// travail, Ticket) sont maintenant branchées sur les vraies données, ainsi
+// que la CRÉATION d'Actif/Emplacement/Categorie d'actif et le changement de
+// statut d'un Actif (colonnes fmaint_statut / fmaint_type — voir
+// STATUT_ACTIF_CODES / TYPE_EMPLACEMENT_CODES ci-dessous pour la correspondance
+// avec les valeurs d'option Dataverse).
 //
-// Tout le reste (création, changements de statut, workflow métier détaillé,
-// SLA, clés, projets immobiliers, énergie, utilisateurs, audit...) continue
-// d'utiliser mockData.js, car ces tables/colonnes n'existent pas encore dans
-// Dataverse — voir le document "Analyse d'écart" pour le détail de ce qui
-// resterait à créer.
+// Le cycle de vie détaillé de l'Actif (etatCycleVie, criticité, code
+// inventaire, pièces jointes) et de l'Ordre de travail (statut métier au-delà
+// du statecode Actif/Inactif générique, compte-rendu, checklist...) n'ont pas
+// de colonnes Dataverse correspondantes — ils continuent d'opérer en mémoire
+// et ne survivent pas à un rechargement. Idem pour tout le reste (SLA, clés,
+// projets immobiliers, énergie, contrats...), qui reste sur mockData.js car
+// ces tables n'existent pas du tout dans Dataverse — voir le document
+// "Analyse d'écart" pour le détail de ce qui resterait à créer.
 // ============================================================================
 
 import { portalGet, portalPost, portalPatch, getFormatted } from './portalApi.js'
@@ -49,9 +56,27 @@ import {
 // sinon les transitions de cycle de vie (qualifierOrdreTravail, etc.),
 // ré-exportées via `export *`, ne retrouveraient pas les OT créés côté
 // Power Apps.
-export { mockActifs, mockOrdresTravail }
+export { mockActifs, mockOrdresTravail, mockEmplacements, mockCategories }
 import { transitionAutorisee } from '../domain/ordreTravailWorkflow.js'
 import { avancerEcheance, joursDeLaPeriode } from '../domain/echeances.js'
+
+// Correspondance labels UI <-> valeurs d'option Dataverse (picklists
+// fmaint_actif.fmaint_statut et fmaint_emplacement.fmaint_type), relevées sur
+// la solution FirstMaint exportée — nécessaires pour écrire réellement ces
+// champs (les lectures utilisent déjà les libellés formatés via getFormatted).
+export const STATUT_ACTIF_CODES = {
+  'En service': 607570000,
+  'En panne': 607570001,
+  'En maintenance': 607570002,
+  'Retiré': 607570003,
+}
+
+export const TYPE_EMPLACEMENT_CODES = {
+  'Agence': 607570000,
+  'Siège': 607570001,
+  'Étage': 607570002,
+  'Salle': 607570003,
+}
 
 // Délai maximal d'intervention corrective (heures), différencié par criticité de
 // l'actif concerné — cahier des charges US-02, section 2.4 (paliers d'escalade).
@@ -94,7 +119,15 @@ export async function getEmplacements() {
 }
 
 export async function createEmplacement(nouvelEmplacement) {
-  const emplacement = { id: `emp-${Date.now()}`, parentId: null, ...nouvelEmplacement }
+  const payload = { fmaint_nom: nouvelEmplacement.nom }
+  const typeCode = TYPE_EMPLACEMENT_CODES[nouvelEmplacement.type]
+  if (typeCode !== undefined) payload.fmaint_type = typeCode
+  if (nouvelEmplacement.parentId) {
+    payload['fmaint_Emplacementparent@odata.bind'] = `/fmaint_emplacements(${nouvelEmplacement.parentId})`
+  }
+  const r = await portalPost('fmaint_emplacements', payload)
+
+  const emplacement = { parentId: null, ...nouvelEmplacement, id: r.fmaint_emplacementid }
   mockEmplacements.push(emplacement)
   return simulateDelay(emplacement)
 }
@@ -111,7 +144,13 @@ export async function getCategoriesActif() {
 }
 
 export async function createCategorieActif(nouvelleCategorie) {
-  const categorie = { id: `cat-${Date.now()}`, ...nouvelleCategorie }
+  const payload = {
+    fmaint_nomdelacategorie: nouvelleCategorie.nom,
+    fmaint_description: nouvelleCategorie.description || '',
+  }
+  const r = await portalPost('fmaint_categoriedactifs', payload)
+
+  const categorie = { ...nouvelleCategorie, id: r.fmaint_categoriedactifid }
   mockCategories.push(categorie)
   return simulateDelay(categorie)
 }
@@ -164,12 +203,25 @@ export async function getActifs() {
 export async function createActif(nouvelActif) {
   const categorie = mockCategories.find((c) => c.id === nouvelActif.categorieId)
   const codeInventaire = await genererProchainCodeInventaire()
+
+  const payload = {
+    fmaint_nom: nouvelActif.nom,
+    fmaint_numerodeserie: nouvelActif.numeroSerie || '',
+    fmaint_statut: STATUT_ACTIF_CODES[nouvelActif.statut] ?? STATUT_ACTIF_CODES['En service'],
+    fmaint_valeur: Number(nouvelActif.valeur) || 0,
+  }
+  if (nouvelActif.dateAcquisition) payload.fmaint_datedacquisition = nouvelActif.dateAcquisition
+  if (nouvelActif.dateFinGarantie) payload.fmaint_datedefindegarantie = nouvelActif.dateFinGarantie
+  if (nouvelActif.emplacementId) payload['fmaint_EmplacementID@odata.bind'] = `/fmaint_emplacements(${nouvelActif.emplacementId})`
+  if (nouvelActif.categorieId) payload['fmaint_CategoriedactifID@odata.bind'] = `/fmaint_categoriedactifs(${nouvelActif.categorieId})`
+  const r = await portalPost('fmaint_actifs', payload)
+
   const actif = {
-    id: `act-${Date.now()}`,
     etatCycleVie: 'En saisie',
     piecesJointes: [],
     criticite: categorie?.criticiteParDefaut || 'Moyenne',
     ...nouvelActif,
+    id: r.fmaint_actifid,
     codeInventaire,
   }
   mockActifs.push(actif)
@@ -181,6 +233,10 @@ export async function createActif(nouvelActif) {
 }
 
 export async function updateActifStatut(id, statut) {
+  const code = STATUT_ACTIF_CODES[statut]
+  if (code !== undefined) {
+    await portalPatch('fmaint_actifs', id, { fmaint_statut: code })
+  }
   const actif = mockActifs.find((a) => a.id === id)
   if (actif) {
     actif.statut = statut

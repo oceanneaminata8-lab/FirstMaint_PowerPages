@@ -1,0 +1,15 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: fmaint_ticket
+adx_entityname: tickets
+adx_entitypermission_webrole: []
+adx_entitypermissionid: 05d4ecdd-5299-444e-81b6-c47619e34ac5
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

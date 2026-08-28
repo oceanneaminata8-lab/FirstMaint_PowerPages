@@ -1,0 +1,15 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: false
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: fmaint_actif
+adx_entityname: categoriedactifs
+adx_entitypermission_webrole: []
+adx_entitypermissionid: da450525-7f50-44a1-b9eb-26dab445e4c2
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

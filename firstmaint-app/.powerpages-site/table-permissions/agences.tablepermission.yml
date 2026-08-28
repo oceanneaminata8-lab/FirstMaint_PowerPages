@@ -1,0 +1,15 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: fmaint_agence
+adx_entityname: agences
+adx_entitypermission_webrole: []
+adx_entitypermissionid: dce3ea66-092b-4f84-98a2-5c98bfb642de
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

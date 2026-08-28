@@ -1,0 +1,15 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: fmaint_actif
+adx_entityname: actifs
+adx_entitypermission_webrole: []
+adx_entitypermissionid: e7fea26d-a729-448f-8ac4-b03f09267121
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

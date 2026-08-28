@@ -1,0 +1,15 @@
+adx_accountrelationship: 
+adx_append: true
+adx_appendto: true
+adx_contactrelationship: 
+adx_create: true
+adx_delete: true
+adx_entitylogicalname: fmaint_technicien
+adx_entityname: techniciens
+adx_entitypermission_webrole: []
+adx_entitypermissionid: 529a088e-1e85-494a-a431-f9e3713621c8
+adx_parententitypermission: 
+adx_parentrelationship: 
+adx_read: true
+adx_scope: 756150000
+adx_write: true

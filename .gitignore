@@ -3,8 +3,19 @@ node_modules/
 
 # Build output
 dist/
+dist-powerapps/
 build/
 out/
+
+# Power Platform Code App: real environment/app identifiers — never commit,
+# see power.config.example.json for the shape without secrets.
+firstmaint-app/power.config.json
+
+# Power Pages identity provider secret/id — never commit real values. Also
+# untracked via `git rm --cached` since these were already tracked (with
+# empty placeholders) before this rule existed.
+firstmaint-app/.powerpages-site/site-settings/Authentication-OpenAuth-Microsoft-ClientId.sitesetting.yml
+firstmaint-app/.powerpages-site/site-settings/Authentication-OpenAuth-Microsoft-ClientSecret.sitesetting.yml
 
 # Unused stray scaffold left over from `npm create vite` inside firstmaint-app/
 firstmaint-app/firsmaint-app/

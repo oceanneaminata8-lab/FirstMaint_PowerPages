@@ -15,6 +15,14 @@ adx_webfile:
   DisplayName: index-C9smQL-j.js
   CheckSum: 
   IsDeleted: true
+- RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
+  DisplayName: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
+  CheckSum: 
+  IsDeleted: true
+- RecordId: 6435512c-f921-4fe8-9b9c-a5f86cf708f9
+  DisplayName: index-6h-6S3Va.js
+  CheckSum: 
+  IsDeleted: true
 - RecordId: 661d1a72-0e17-44c9-800a-dfce360451f7
   DisplayName: index-wY7f9hw3.js
   CheckSum: 
@@ -43,7 +51,15 @@ adx_webfile:
   DisplayName: index-Dm6Zl-nv.css
   CheckSum: 
   IsDeleted: true
+- RecordId: f52aa567-5111-4127-8f53-fae251eefe1d
+  DisplayName: index-hHxOmymj.css
+  CheckSum: 
+  IsDeleted: true
 annotation:
+- RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
+  DisplayName: index.html
+  CheckSum: 
+  IsDeleted: true
 - RecordId: 9a2eb4b2-1267-4ebd-b0bb-77252b909c96
   DisplayName: index-D0XTBHK-.css
   CheckSum: 

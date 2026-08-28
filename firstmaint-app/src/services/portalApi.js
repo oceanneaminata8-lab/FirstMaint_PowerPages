@@ -61,6 +61,25 @@ export async function portalPost(entitySet, payload) {
   return response.json()
 }
 
+export async function portalPatch(entitySet, id, payload) {
+  const token = await getRequestVerificationToken()
+  const response = await fetch(`/_api/${entitySet}(${id})`, {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Prefer: `return=representation, ${PREFER_FORMATTED_VALUES}`,
+      __RequestVerificationToken: token,
+    },
+    body: JSON.stringify(payload),
+  })
+  if (!response.ok) {
+    throw new Error(`Web API Power Pages — échec de mise à jour dans "${entitySet}" (${response.status}).`)
+  }
+  return response.json()
+}
+
 // Lit la valeur "affichage" d'un champ lookup/picklist sur un enregistrement
 // renvoyé par portalGet/portalPost (ex. getFormatted(r, 'fmaint_type')).
 export function getFormatted(record, field) {

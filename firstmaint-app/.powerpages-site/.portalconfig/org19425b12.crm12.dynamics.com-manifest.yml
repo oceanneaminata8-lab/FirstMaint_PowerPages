@@ -500,7 +500,7 @@ adx_webfile:
 - RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
   DisplayName: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
   CheckSum: eea4877dcce0d0a193dc9e29bdc777d0c467789005f12d2405e5e4eb66a39bbf
-  IsDeleted: false
+  IsDeleted: true
 - RecordId: 563b9a03-5411-45d5-b9a0-ee5589baa986
   DisplayName: 563b9a03-5411-45d5-b9a0-ee5589baa986
   CheckSum: 25750b997cc4eb24e0d52ec8dcf888f337dfe6983b39044b3cdcef8d9356e800
@@ -632,6 +632,10 @@ adx_webfile:
 - RecordId: a1fa8406-de1e-4768-9803-c44ad92bd6ec
   DisplayName: a1fa8406-de1e-4768-9803-c44ad92bd6ec
   CheckSum: 0af1dac718341d76883a491949cbff4d0e489d16ebe1951e378da52311cf83be
+  IsDeleted: false
+- RecordId: abc7f744-ea2a-4a4a-b918-ec06cafea0ad
+  DisplayName: abc7f744-ea2a-4a4a-b918-ec06cafea0ad
+  CheckSum: e74d0d790bbe16178014bd91bc0f39e57d9bc5f805730d9f6a7d4820032f49f8
   IsDeleted: false
 - RecordId: aca100e2-c6ca-4de3-8ee9-9daa08cd22ff
   DisplayName: aca100e2-c6ca-4de3-8ee9-9daa08cd22ff
@@ -778,7 +782,7 @@ adx_webpage:
   IsDeleted: false
 - RecordId: a2775837-9eb2-4acd-b790-62dc2f1ce084
   DisplayName: a2775837-9eb2-4acd-b790-62dc2f1ce084
-  CheckSum: 906977e035fd1ee98e681eeaa3619244b22db3f8df1581fc1877a9d9bba29274
+  CheckSum: d51f8fee7f11445b149f2ac00010eea4146cbd72a9efb22b57c41a90099ff3b3
   IsDeleted: false
 - RecordId: b4e53914-c5ab-4508-8a9e-d0103342b095
   DisplayName: b4e53914-c5ab-4508-8a9e-d0103342b095
@@ -1052,7 +1056,7 @@ annotation:
 - RecordId: 4f2c9965-7b74-4c38-bfdb-ce3ccdf27596
   DisplayName: index.html
   CheckSum: 92a0ca960b7eb300f986fdeadd1bc7a84c89afd528cf8fc5fd1e57ccf8387fb7
-  IsDeleted: false
+  IsDeleted: true
 - RecordId: 563b9a03-5411-45d5-b9a0-ee5589baa986
   DisplayName: space-grotesk-latin-ext-600-normal-DxxdqCpr.woff2
   CheckSum: f022f4e4b8047729e805ecb987e46c2e5ebcc9abec1ba890985db4677e7e2151
@@ -1184,6 +1188,10 @@ annotation:
 - RecordId: a1fa8406-de1e-4768-9803-c44ad92bd6ec
   DisplayName: inter-cyrillic-ext-600-normal-Bcila6Z-.woff
   CheckSum: 9297587685b7c3e1b9da79ffc671d2d92c05d0028d9cd25a3531e607785d0f95
+  IsDeleted: false
+- RecordId: abc7f744-ea2a-4a4a-b918-ec06cafea0ad
+  DisplayName: index.html
+  CheckSum: b79fa245aa1ec82bdc013dd7935cd452575e8291fd94a68d7fb45c95cd677194
   IsDeleted: false
 - RecordId: aca100e2-c6ca-4de3-8ee9-9daa08cd22ff
   DisplayName: space-grotesk-vietnamese-700-normal-Duxec5Rn.woff

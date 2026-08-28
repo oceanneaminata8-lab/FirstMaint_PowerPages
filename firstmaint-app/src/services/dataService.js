@@ -12,7 +12,7 @@
 // resterait à créer.
 // ============================================================================
 
-import { portalGet, portalPost, getFormatted } from './portalApi.js'
+import { portalGet, portalPost, portalPatch, getFormatted } from './portalApi.js'
 import {
   actifs as mockActifs,
   emplacements as mockEmplacements,
@@ -42,9 +42,14 @@ import {
   piecesRechange as mockPiecesRechange,
   mouvementsStock as mockMouvementsStock,
   consommationsEnergie as mockConsommationsEnergie,
-  utilisateurs as mockUtilisateurs,
   SEUIL_DOUBLE_VALIDATION,
 } from '../data/mockData.js'
+// Ré-exportés (références, pas des copies) pour que dataService.powerapps.js
+// puisse pousser dans les mêmes tableaux mock que les fonctions ci-dessous —
+// sinon les transitions de cycle de vie (qualifierOrdreTravail, etc.),
+// ré-exportées via `export *`, ne retrouveraient pas les OT créés côté
+// Power Apps.
+export { mockActifs, mockOrdresTravail }
 import { transitionAutorisee } from '../domain/ordreTravailWorkflow.js'
 import { avancerEcheance, joursDeLaPeriode } from '../domain/echeances.js'
 
@@ -66,7 +71,7 @@ export const DELAI_ANTICIPATION_PAR_CRITICITE = {
   Basse: 15,
 }
 
-function dateEcheanceParCriticite(criticite, depuis = new Date()) {
+export function dateEcheanceParCriticite(criticite, depuis = new Date()) {
   const heures = DELAI_MAX_PAR_CRITICITE[criticite] ?? 72
   const d = new Date(depuis)
   d.setHours(d.getHours() + heures)
@@ -384,7 +389,7 @@ export async function importActifsCsv(lignes) {
 
 // ---- Ordres de travail -------------------------------------------------------
 export async function getOrdresTravail() {
-  const rows = await portalGet('fmaint_ordredetravails', '?$select=fmaint_ordredetravailid,fmaint_nomordre,statecode,fmaint_urgent,_fmaint_technicienid_value,fmaint_dateintervention,fmaint_dureeheures')
+  const rows = await portalGet('fmaint_ordredetravails', '?$select=fmaint_ordredetravailid,fmaint_nomordre,statecode,fmaint_urgent,_fmaint_technicienid_value,_fmaint_actifid_value,fmaint_dateintervention,fmaint_dureeheures')
   return rows.map((r) => ({
     id: r.fmaint_ordredetravailid,
     numero: r.fmaint_nomordre,
@@ -394,7 +399,7 @@ export async function getOrdresTravail() {
     technicien: getFormatted(r, '_fmaint_technicienid_value') || null,
     dateEcheance: r.fmaint_dateintervention ? r.fmaint_dateintervention.slice(0, 10) : null,
     dureeHeures: r.fmaint_dureeheures || 0,
-    actifId: null,
+    actifId: r._fmaint_actifid_value || null,
     checklist: [],
     piecesJointes: [],
     origine: 'Corrective',
@@ -403,7 +408,7 @@ export async function getOrdresTravail() {
 
 // Numérotation distincte préventif/correctif (US-03, étape 1 : préfixe PREV
 // vs CORR).
-function prochainNumeroOt(origine) {
+export function prochainNumeroOt(origine) {
   const prefixe = origine === 'Préventif' ? 'PREV' : 'CORR'
   const numeros = mockOrdresTravail
     .map((o) => o.numero)
@@ -413,15 +418,33 @@ function prochainNumeroOt(origine) {
   return `${prefixe}-${prochain}`
 }
 
+// Création réelle dans Dataverse (fmaint_ordredetravails) — seule la table
+// Actif est liée à la création (fmaint_actifid, une vraie colonne lookup) ;
+// le technicien n'est pas encore un vrai lookup ID à ce stade du formulaire,
+// donc il reste informationnel côté mock comme avant. Le reste du cycle de
+// vie (qualification, résolution, clôture...) continue d'opérer sur le
+// tableau mock en mémoire — cf. plan : refaire tout le cycle de vie en
+// Dataverse est hors scope (la table n'a pas les colonnes checklist/
+// compteRendu/etc.). On pousse quand même l'enregistrement réel (avec son
+// vrai id Dataverse) dans mockOrdresTravail pour que ces fonctions
+// continuent à le retrouver par id.
 export async function createOrdreTravail(nouvelOrdre) {
   const actif = mockActifs.find((a) => a.id === nouvelOrdre.actifId)
   const origine = nouvelOrdre.origine || 'Corrective'
   // Délai max auto-assigné selon la criticité de l'actif si non renseigné (US-02).
   const dateEcheance = nouvelOrdre.dateEcheance
     || (origine === 'Corrective' ? dateEcheanceParCriticite(actif?.criticite) : null)
+  const numero = prochainNumeroOt(origine)
+
+  const payload = {
+    fmaint_nomordre: nouvelOrdre.titre || numero,
+    fmaint_urgent: nouvelOrdre.priorite === 'Critique',
+  }
+  if (dateEcheance) payload.fmaint_dateintervention = dateEcheance
+  if (nouvelOrdre.actifId) payload['fmaint_ActifID@odata.bind'] = `/fmaint_actifs(${nouvelOrdre.actifId})`
+  const r = await portalPost('fmaint_ordredetravails', payload)
+
   const ordre = {
-    id: `ot-${Date.now()}`,
-    numero: prochainNumeroOt(origine),
     dateOuverture: new Date().toISOString().slice(0, 10),
     dateAccuseReception: null,
     dateDebutIntervention: null,
@@ -435,6 +458,8 @@ export async function createOrdreTravail(nouvelOrdre) {
     ...nouvelOrdre,
     origine,
     dateEcheance,
+    id: r.fmaint_ordredetravailid,
+    numero,
   }
   mockOrdresTravail.push(ordre)
   await ajouterAudit({
@@ -749,7 +774,7 @@ export async function getRapportsMensuels() {
 
 // ---- Tickets ------------------------------------------------------------------
 export async function getTickets() {
-  const rows = await portalGet('fmaint_tickets', '?$select=fmaint_ticketid,fmaint_titre,fmaint_description,statecode,_fmaint_agenceid_value,fmaint_urgence')
+  const rows = await portalGet('fmaint_tickets', '?$select=fmaint_ticketid,fmaint_titre,fmaint_description,statecode,_fmaint_agenceid_value,fmaint_urgence,_fmaint_ordredetravailid_value')
   return rows.map((r) => ({
     id: r.fmaint_ticketid,
     titre: r.fmaint_titre,
@@ -757,7 +782,7 @@ export async function getTickets() {
     statut: getFormatted(r, 'statecode') || 'Ouvert',
     emplacementId: r._fmaint_agenceid_value,
     urgence: getFormatted(r, 'fmaint_urgence') || 'Moyenne',
-    ordreTravailId: null,
+    ordreTravailId: r._fmaint_ordredetravailid_value || null,
     piecesJointes: [],
   }))
 }
@@ -792,10 +817,14 @@ export async function updateTicketStatut(id, statut) {
 }
 
 // Rattache l'OT créé à partir d'un ticket (US-03, portail self-service -> OT correctif).
+// Écrit réellement dans Dataverse (fmaint_ordredetravailid, colonne lookup) —
+// avant, cette fonction ne mutait que mockTickets, un tableau jamais relu
+// (getTickets relit toujours Dataverse), donc le lien ne persistait jamais.
 export async function relierTicketAOrdre(id, ordreTravailId) {
-  const ticket = mockTickets.find((t) => t.id === id)
-  if (ticket) ticket.ordreTravailId = ordreTravailId
-  return simulateDelay(ticket)
+  await portalPatch('fmaint_tickets', id, {
+    'fmaint_OrdreDeTravailID@odata.bind': `/fmaint_ordredetravails(${ordreTravailId})`,
+  })
+  return { id, ordreTravailId }
 }
 
 export async function ajouterPieceJointeTicket(id, nomFichier) {
@@ -808,6 +837,37 @@ export async function ajouterPieceJointeTicket(id, nomFichier) {
     })
   }
   return simulateDelay(ticket)
+}
+
+// ---- Discussion sur ticket (table Dataverse fmaint_commentaireticket, accès authentifié) --
+export async function getCommentairesTicket(ticketId) {
+  const rows = await portalGet(
+    'fmaint_commentairetickets',
+    `?$select=fmaint_commentaireticketid,fmaint_message,fmaint_auteur,fmaint_estreponsebanque,createdon&$filter=_fmaint_ticketid_value eq ${ticketId}&$orderby=createdon asc`,
+  )
+  return rows.map((r) => ({
+    id: r.fmaint_commentaireticketid,
+    message: r.fmaint_message,
+    auteur: r.fmaint_auteur,
+    estReponseBanque: !!r.fmaint_estreponsebanque,
+    date: r.createdon,
+  }))
+}
+
+export async function createCommentaireTicket(ticketId, message, auteur, estReponseBanque = false) {
+  const r = await portalPost('fmaint_commentairetickets', {
+    fmaint_message: message,
+    fmaint_auteur: auteur,
+    fmaint_estreponsebanque: estReponseBanque,
+    'fmaint_TicketID@odata.bind': `/fmaint_tickets(${ticketId})`,
+  })
+  return {
+    id: r.fmaint_commentaireticketid,
+    message: r.fmaint_message,
+    auteur: r.fmaint_auteur,
+    estReponseBanque: !!r.fmaint_estreponsebanque,
+    date: r.createdon,
+  }
 }
 
 // ---- Maintenance préventive -----------------------------------------------------
@@ -1258,27 +1318,55 @@ export async function createConsommationEnergie(nouvelleConso) {
   return simulateDelay(conso)
 }
 
-// ---- Utilisateurs & rôles (Configurations) --------------------------------------------
+// ---- Utilisateurs & rôles (table Dataverse fmaint_utilisateur, accès authentifié) ------
+function mapUtilisateur(r) {
+  return {
+    id: r.fmaint_utilisateurid,
+    nom: r.fmaint_nom,
+    email: r.fmaint_email,
+    role: r.fmaint_role,
+    statut: r.fmaint_statut,
+    siteId: r._fmaint_siteid_value || null,
+  }
+}
+
+const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_nom,fmaint_email,fmaint_role,fmaint_statut,_fmaint_siteid_value'
+
 export async function getUtilisateurs() {
-  return simulateDelay(mockUtilisateurs)
+  const rows = await portalGet('fmaint_utilisateurs', `?$select=${CHAMPS_UTILISATEUR}`)
+  return rows.map(mapUtilisateur)
 }
 
 export async function createUtilisateur(nouvelUtilisateur) {
-  const utilisateur = { id: `usr-${Date.now()}`, statut: 'Actif', ...nouvelUtilisateur }
-  mockUtilisateurs.push(utilisateur)
-  return simulateDelay(utilisateur)
+  const payload = {
+    fmaint_nom: nouvelUtilisateur.nom,
+    fmaint_email: nouvelUtilisateur.email,
+    fmaint_role: nouvelUtilisateur.role,
+    fmaint_statut: nouvelUtilisateur.statut || 'Actif',
+  }
+  if (nouvelUtilisateur.siteId) payload['fmaint_SiteID@odata.bind'] = `/fmaint_emplacements(${nouvelUtilisateur.siteId})`
+  const r = await portalPost('fmaint_utilisateurs', payload)
+  return mapUtilisateur(r)
 }
 
 export async function updateUtilisateurRole(id, role) {
-  const utilisateur = mockUtilisateurs.find((u) => u.id === id)
-  if (utilisateur) utilisateur.role = role
-  return simulateDelay(utilisateur)
+  const r = await portalPatch('fmaint_utilisateurs', id, { fmaint_role: role })
+  return mapUtilisateur(r)
 }
 
 export async function updateUtilisateurStatut(id, statut) {
-  const utilisateur = mockUtilisateurs.find((u) => u.id === id)
-  if (utilisateur) utilisateur.statut = statut
-  return simulateDelay(utilisateur)
+  const r = await portalPatch('fmaint_utilisateurs', id, { fmaint_statut: statut })
+  return mapUtilisateur(r)
+}
+
+// Retrouve l'utilisateur courant par email (identité fournie par Entra ID via
+// getPortalUser()), ou le crée avec le rôle le moins privilégié par défaut —
+// c'est cette fonction qui répond à "créer un utilisateur quand il se connecte".
+export async function getOrCreateUtilisateurCourant(email, nomPropose) {
+  const emailEchappe = email.replace(/'/g, "''")
+  const rows = await portalGet('fmaint_utilisateurs', `?$select=${CHAMPS_UTILISATEUR}&$filter=fmaint_email eq '${emailEchappe}'`)
+  if (rows.length) return mapUtilisateur(rows[0])
+  return createUtilisateur({ nom: nomPropose || email, email, role: 'Opérateur DMG', statut: 'Actif' })
 }
 
 // ---- Journal d'audit (US-05) ---------------------------------------------------------

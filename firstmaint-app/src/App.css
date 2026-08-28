@@ -1880,3 +1880,62 @@ tbody tr:hover { background: var(--app-maroon-soft); }
     break-inside: avoid;
   }
 }
+
+/* ============================================================================
+   DISCUSSION SUR TICKET — espace d'échange entre le site demandeur et la DMG
+============================================================================ */
+.discussion-ticket {
+  max-width: 560px;
+}
+
+.discussion-fil {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.discussion-message {
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.discussion-message.reponse-banque {
+  border-color: var(--color-accent-soft);
+  background: var(--color-accent-soft);
+  align-self: flex-end;
+}
+
+.discussion-message-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-bottom: 4px;
+}
+
+.discussion-message p {
+  margin: 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.discussion-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.discussion-form textarea {
+  flex: 1;
+  resize: vertical;
+  font-family: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}

@@ -2,18 +2,49 @@ import { useState, Fragment } from 'react'
 import { StatusBadge } from './StatusBadge.jsx'
 import { EmplacementChain } from './EmplacementChain.jsx'
 import { PieceJointeUploader } from './PieceJointeUploader.jsx'
+import { DiscussionTicket } from './DiscussionTicket.jsx'
 import { Icon } from './Icons.jsx'
 
 const STATUTS = ['Ouvert', 'En traitement', 'Résolu', 'Fermé']
 const URGENCES = ['Faible', 'Moyenne', 'Haute']
+const SECTIONS_ETENDUES = { PIECES: 'pieces', DISCUSSION: 'discussion' }
 
-export function TicketsList({ tickets, emplacements, actifs, onCreer, onChangerStatut, onAjouterPieceJointe, onTransformerEnOrdre }) {
+export function TicketsList({
+  tickets, emplacements, actifs, onCreer, onChangerStatut, onAjouterPieceJointe, onTransformerEnOrdre,
+  onChargerCommentaires, onEnvoyerCommentaire,
+}) {
   const [ouvert, setOuvert] = useState(false)
   const [form, setForm] = useState({
     titre: '', description: '', emplacementId: emplacements[0]?.id || '', actifId: '', demandeur: '', urgence: 'Moyenne',
   })
   const [codeScanne, setCodeScanne] = useState('')
   const [ligneEtendue, setLigneEtendue] = useState(null)
+  const [sectionEtendue, setSectionEtendue] = useState(SECTIONS_ETENDUES.PIECES)
+  const [commentaires, setCommentaires] = useState({})
+  const [chargementCommentaires, setChargementCommentaires] = useState(false)
+
+  async function ouvrirLigne(ticketId, section) {
+    if (ligneEtendue === ticketId && sectionEtendue === section) {
+      setLigneEtendue(null)
+      return
+    }
+    setLigneEtendue(ticketId)
+    setSectionEtendue(section)
+    if (section === SECTIONS_ETENDUES.DISCUSSION && !commentaires[ticketId]) {
+      setChargementCommentaires(true)
+      try {
+        const liste = await onChargerCommentaires(ticketId)
+        setCommentaires((prev) => ({ ...prev, [ticketId]: liste }))
+      } finally {
+        setChargementCommentaires(false)
+      }
+    }
+  }
+
+  async function envoyerCommentaire(ticketId, message) {
+    const cree = await onEnvoyerCommentaire(ticketId, message)
+    setCommentaires((prev) => ({ ...prev, [ticketId]: [...(prev[ticketId] || []), cree] }))
+  }
 
   function soumettre(e) {
     e.preventDefault()
@@ -131,9 +162,16 @@ export function TicketsList({ tickets, emplacements, actifs, onCreer, onChangerS
                       <button
                         className="btn secondary"
                         style={{ padding: '5px 10px', fontSize: 12 }}
-                        onClick={() => setLigneEtendue(estEtendue ? null : t.id)}
+                        onClick={() => ouvrirLigne(t.id, SECTIONS_ETENDUES.PIECES)}
                       >
-                        {estEtendue ? 'Fermer' : 'Pièces jointes'}
+                        {estEtendue && sectionEtendue === SECTIONS_ETENDUES.PIECES ? 'Fermer' : 'Pièces jointes'}
+                      </button>
+                      <button
+                        className="btn secondary"
+                        style={{ padding: '5px 10px', fontSize: 12 }}
+                        onClick={() => ouvrirLigne(t.id, SECTIONS_ETENDUES.DISCUSSION)}
+                      >
+                        {estEtendue && sectionEtendue === SECTIONS_ETENDUES.DISCUSSION ? 'Fermer' : 'Discussion'}
                       </button>
                       {!t.ordreTravailId && (
                         <button
@@ -146,13 +184,25 @@ export function TicketsList({ tickets, emplacements, actifs, onCreer, onChangerS
                       )}
                     </td>
                   </tr>
-                  {estEtendue && (
+                  {estEtendue && sectionEtendue === SECTIONS_ETENDUES.PIECES && (
                     <tr>
                       <td colSpan={5} className="row-detail">
                         <h3>Pièces jointes</h3>
                         <PieceJointeUploader
                           piecesJointes={t.piecesJointes || []}
                           onAjouter={(nomFichier) => onAjouterPieceJointe(t.id, nomFichier)}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  {estEtendue && sectionEtendue === SECTIONS_ETENDUES.DISCUSSION && (
+                    <tr>
+                      <td colSpan={5} className="row-detail">
+                        <h3>Discussion avec la DMG</h3>
+                        <DiscussionTicket
+                          commentaires={commentaires[t.id] || []}
+                          chargement={chargementCommentaires}
+                          onEnvoyer={(message) => envoyerCommentaire(t.id, message)}
                         />
                       </td>
                     </tr>

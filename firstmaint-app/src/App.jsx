@@ -22,7 +22,7 @@ import { CategoriesActifs } from './components/CategoriesActifs.jsx'
 import { PiecesRechange } from './components/PiecesRechange.jsx'
 import { ConsommationEnergie } from './components/ConsommationEnergie.jsx'
 import { Utilisateurs } from './components/Utilisateurs.jsx'
-import * as dataService from './services/dataService.js'
+import * as dataService from './services/dataClient.js'
 import { executerMoteurRegles } from './services/automationEngine.js'
 import { getPortalUser, deconnexionPortail } from './services/portalAuth.js'
 import { ROLES } from './data/mockData.js'
@@ -201,6 +201,31 @@ export default function App() {
     setOngletActif(cle)
   }
 
+  // Résolution de la session réelle Power Pages/Entra ID au montage : si une
+  // connexion existe déjà (retour de redirection ou session persistante),
+  // on retrouve/crée son enregistrement Utilisateur dans Dataverse — c'est ce
+  // qui répond à "créer un utilisateur quand il se connecte" — et on entre
+  // directement dans l'application avec le rôle/site qui y sont enregistrés.
+  useEffect(() => {
+    const portalUser = getPortalUser()
+    if (!portalUser) return
+    const nomPropose = `${portalUser.prenom || ''} ${portalUser.nom || ''}`.trim() || portalUser.email
+    dataService.getOrCreateUtilisateurCourant(portalUser.email, nomPropose)
+      .then((utilisateur) => {
+        setUtilisateurEmail(utilisateur.email)
+        setRole(utilisateur.role || ROLES[0])
+        setSiteId(utilisateur.siteId || null)
+        setVue('app')
+      })
+      .catch((error) => {
+        console.error('Échec de récupération/création de l\'utilisateur courant :', error)
+      })
+  }, [])
+
+  // Connexion de démonstration (formulaire local) — remise en place le temps
+  // que le fournisseur d'identité Entra ID soit configuré côté portail
+  // (Azure AD + Power Pages) ; le useEffect ci-dessus reprendra la main
+  // automatiquement dès qu'une vraie session Power Pages existera.
   function seConnecter(email, roleChoisi, siteChoisiId) {
     setUtilisateurEmail(email)
     setRole(roleChoisi || ROLES[0])
@@ -405,6 +430,18 @@ export default function App() {
   async function changerStatutTicket(id, statut) {
     await dataService.updateTicketStatut(id, statut)
     setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, statut } : t)))
+  }
+
+  function chargerCommentairesTicket(ticketId) {
+    return dataService.getCommentairesTicket(ticketId)
+  }
+
+  // Un message posté par un profil DMG (côté maintenance) est affiché comme
+  // une réponse de la banque ; les autres profils (site demandeur) comme un
+  // message entrant.
+  function envoyerCommentaireTicket(ticketId, message) {
+    const estReponseBanque = role.includes('DMG')
+    return dataService.createCommentaireTicket(ticketId, message, utilisateurEmail || role, estReponseBanque)
   }
 
   async function ajouterPieceJointeTicket(id, nomFichier) {
@@ -703,6 +740,8 @@ export default function App() {
             onChangerStatut={changerStatutTicket}
             onAjouterPieceJointe={ajouterPieceJointeTicket}
             onTransformerEnOrdre={transformerTicketEnOrdre}
+            onChargerCommentaires={chargerCommentairesTicket}
+            onEnvoyerCommentaire={envoyerCommentaireTicket}
           />
         )}
         {ongletActif === 'maintenancePreventive' && (

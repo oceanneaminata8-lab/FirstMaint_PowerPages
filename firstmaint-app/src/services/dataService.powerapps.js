@@ -210,7 +210,7 @@ export async function getEmplacements() {
   const rows = await listRecords('fmaint_emplacements', 'fmaint_emplacementid,fmaint_nom,fmaint_type,_fmaint_emplacementparent_value')
   return rows.map((r) => ({
     id: r.fmaint_emplacementid,
-    nom: r.fmaint_nom,
+    nom: r.fmaint_name,
     type: getFormatted(r, 'fmaint_type') || 'Agence',
     parentId: r._fmaint_emplacementparent_value || null,
   }))
@@ -438,7 +438,7 @@ function mapUtilisateur(r) {
   }
 }
 
-const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_nom,fmaint_email,fmaint_role,fmaint_statut,_fmaint_siteid_value'
+const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_name,fmaint_email,fmaint_role,fmaint_statut,_fmaint_siteid_value'
 
 export async function getUtilisateurs() {
   const rows = await listRecords('fmaint_utilisateurs', CHAMPS_UTILISATEUR)
@@ -447,7 +447,7 @@ export async function getUtilisateurs() {
 
 export async function createUtilisateur(nouvelUtilisateur) {
   const payload = {
-    fmaint_nom: nouvelUtilisateur.nom,
+    fmaint_name: nouvelUtilisateur.nom,
     fmaint_email: nouvelUtilisateur.email,
     fmaint_role: nouvelUtilisateur.role,
     fmaint_statut: nouvelUtilisateur.statut || 'Actif',

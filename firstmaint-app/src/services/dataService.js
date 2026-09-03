@@ -983,12 +983,12 @@ export async function createConsommationEnergie(nouvelleConso) {
 // UTILISATEURS - Dataverse fmaint_utilisateurs
 // ============================================================================
 
-const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_nom,fmaint_email,fmaint_role,fmaint_statut'
+const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_name,fmaint_email,fmaint_role,fmaint_statut'
 
 function mapUtilisateur(r) {
   return {
     id: r.fmaint_utilisateurid,
-    nom: r.fmaint_nom,
+    nom: r.fmaint_name,
     email: r.fmaint_email,
     role: r.fmaint_role,
     statut: r.fmaint_statut || 'Actif',
@@ -999,7 +999,7 @@ export async function getUtilisateurs() {
   try {
     const rows = await portalGet(
       'fmaint_utilisateurs',
-      `?$select=${CHAMPS_UTILISATEUR}&$orderby=fmaint_nom asc`
+      `?$select=${CHAMPS_UTILISATEUR}&$orderby=fmaint_name asc`
     )
     return rows.map(mapUtilisateur)
   } catch (error) {
@@ -1011,7 +1011,7 @@ export async function getUtilisateurs() {
 export async function createUtilisateur(nouvelUtilisateur) {
   try {
     const payload = {
-      fmaint_nom: nouvelUtilisateur.nom,
+      fmaint_name: nouvelUtilisateur.nom,
       fmaint_email: nouvelUtilisateur.email,
       fmaint_role: nouvelUtilisateur.role || 'Opérateur DMG',
       fmaint_statut: nouvelUtilisateur.statut || 'Actif',

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SEUIL_DOUBLE_VALIDATION } from '../data/mockData.js'
+import { SEUIL_DOUBLE_VALIDATION } from '../data/appConfig.js'
 
 const STATUTS_PENALITE = ['En attente', 'Appliquée', 'Contestée', 'Annulée']
 

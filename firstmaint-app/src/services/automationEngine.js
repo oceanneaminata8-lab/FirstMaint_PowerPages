@@ -5,61 +5,20 @@
 // de clôture, alertes budget/jalon sur les projets immobiliers, rapport
 // mensuel préventif simulé.
 //
-// Opère directement sur les tableaux mock (même approche que dataService.js),
-// pour rester cohérent tant que Dataverse n'est pas branché : plus tard, ce
-// fichier sera remplacé par une Power Automate Flow / Azure Function planifiée
-// qui appliquera la même logique côté serveur.
+// Les règles métier doivent être exécutées côté Dataverse, par Power Automate
+// ou une Azure Function. Le client ne doit jamais modifier des données locales.
 //
 // Idempotent : chaque alerte/tâche générée porte un `sourceId` stable ; le
 // moteur ne recrée jamais une alerte déjà émise pour le même événement.
 // ============================================================================
 
-import {
-  plansPreventifs, echeancesPlan, ordresTravail, historiqueOrdreTravail,
-  alertesAutomatiques, tachesWorkflow, projetsImmobiliers, jalonsProjets,
-  actifs, piecesRechange, contrats, fournisseurs, rapportsMensuels,
-} from '../data/mockData.js'
-import { DELAI_MAX_PAR_CRITICITE, DELAI_ANTICIPATION_PAR_CRITICITE, createOrdreTravail } from './dataService.js'
-import { joursDeLaPeriode } from '../domain/echeances.js'
-
-function idAleatoire(prefixe) {
-  return `${prefixe}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
-
-function joursDepuis(dateStr) {
-  return (new Date(new Date().toDateString()) - new Date(dateStr)) / 86400000
-}
-
-function alerteExiste(sourceId) {
-  return alertesAutomatiques.some((a) => a.sourceId === sourceId)
-}
-
-function ajouterAlerte({ titre, niveau, source, description, sourceId }) {
-  if (sourceId && alerteExiste(sourceId)) return null
-  const alerte = {
-    id: idAleatoire('alr'),
-    titre,
-    niveau,
-    source,
-    date: new Date().toISOString().slice(0, 10),
-    lu: false,
-    description,
-    sourceId: sourceId || null,
-  }
-  alertesAutomatiques.push(alerte)
-  return alerte
-}
-
-function dateEntreeStatut(ordreTravailId, statut) {
-  const entrees = historiqueOrdreTravail
-    .filter((h) => h.ordreTravailId === ordreTravailId && h.statut === statut)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-  return entrees[0]?.date || null
-}
-
 export async function executerMoteurRegles() {
-  const aujourdHui = new Date(new Date().toDateString())
-  const nouveauxOT = []
+  // Les automatisations persistantes seront déclenchées côté serveur.
+  return []
+}
+
+/*
+  Ancienne implémentation client conservée uniquement dans l'historique Git.
 
   // 1. Plans préventifs actifs : génération anticipée de l'OT à J-30 (criticité
   // Critique/Haute) ou J-15 (Moyenne/Basse) avant l'échéance de chaque actif
@@ -353,3 +312,4 @@ export async function executerMoteurRegles() {
 
   return { nouveauxOT }
 }
+*/

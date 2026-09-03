@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ROLES } from '../data/mockData.js'
+import { ROLES } from '../data/appConfig.js'
 
 const STATUTS_UTILISATEUR = ['Actif', 'Suspendu']
 const TONS_STATUT = { Actif: 'succes', Suspendu: 'urgent' }

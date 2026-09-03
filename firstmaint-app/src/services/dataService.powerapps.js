@@ -1,7 +1,5 @@
-// Variante Power Apps Code App de dataService.js : mêmes 7 fonctions de
-// lecture/écriture réelles, mais branchées sur le connecteur Dataverse généré
-// (@microsoft/power-apps/data) au lieu du Web API Power Pages (portalApi.js).
-// Tout le reste (mockData.js) est ré-exporté tel quel depuis dataService.js.
+// Variante Power Apps Code App de dataService.js, branchée sur le connecteur
+// Dataverse généré (@microsoft/power-apps/data).
 //
 // Sélectionné au build via l'alias Vite dans vite.config.powerapps.js — le
 // build Power Pages (vite.config.js par défaut) ne référence jamais ce fichier.
@@ -11,19 +9,113 @@ export * from './dataService.js'
 import { MicrosoftDataverseService } from '../generated/services/MicrosoftDataverseService'
 import { getFormatted } from './portalApi.js'
 import {
-  mockActifs,
-  mockOrdresTravail,
-  mockEmplacements,
-  mockCategories,
   dateEcheanceParCriticite,
-  prochainNumeroOt,
-  ajouterAudit,
-  genererProchainCodeInventaire,
   STATUT_ACTIF_CODES,
   TYPE_EMPLACEMENT_CODES,
 } from './dataService.js'
 
 const PREFER_FORMATTED_VALUES = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"'
+
+// Store organization URL - obtained at initialization time
+let organizationUrl = null
+let isInitializing = false
+let initPromise = null
+
+// Try to extract organization URL from various sources
+function extractOrgUrlFromError(error) {
+  if (!error) return null
+
+  // Try to extract from error message
+  if (error.message) {
+    const match = error.message.match(/https:\/\/[a-zA-Z0-9\-]+\.crm\d*\.dynamics\.com/i)
+    if (match) return match[0]
+  }
+
+  // Try to extract from error data
+  if (error.error?.message) {
+    const match = error.error.message.match(/https:\/\/[a-zA-Z0-9\-]+\.crm\d*\.dynamics\.com/i)
+    if (match) return match[0]
+  }
+
+  return null
+}
+
+// Initialize organization context
+export async function initializeOrganizationContext() {
+  // Return cached result if already initialized
+  if (organizationUrl) {
+    console.log('Using cached organization URL:', organizationUrl)
+    return organizationUrl
+  }
+
+  // If initialization is in progress, wait for it
+  if (isInitializing) {
+    return await initPromise
+  }
+
+  isInitializing = true
+
+  initPromise = (async () => {
+    try {
+      console.log('Initializing Dataverse connection...')
+      
+      // Strategy 1: Try GetOrganizations
+      try {
+        console.log('Strategy 1: Fetching organizations via GetOrganizations()...')
+        const orgsResult = await MicrosoftDataverseService.GetOrganizations()
+        
+        if (orgsResult?.success && orgsResult?.data?.value?.length > 0) {
+          const firstOrg = orgsResult.data.value[0]
+          organizationUrl = firstOrg.OrganizationUrl || firstOrg.organizationUrl
+          console.log('✓ Strategy 1 SUCCESS - Organization URL:', organizationUrl)
+          return organizationUrl
+        }
+        console.log('Strategy 1 returned no data:', orgsResult)
+      } catch (err) {
+        console.log('Strategy 1 failed:', err?.message)
+      }
+
+      // Strategy 2: Try GetOrganizationsTest
+      try {
+        console.log('Strategy 2: Fetching organizations via GetOrganizationsTest()...')
+        const orgsTestResult = await MicrosoftDataverseService.GetOrganizationsTest()
+        
+        if (orgsTestResult?.success && orgsTestResult?.data?.value?.length > 0) {
+          const firstOrg = orgsTestResult.data.value[0]
+          organizationUrl = firstOrg.OrganizationUrl || firstOrg.organizationUrl
+          console.log('✓ Strategy 2 SUCCESS - Organization URL:', organizationUrl)
+          return organizationUrl
+        }
+        console.log('Strategy 2 returned no data:', orgsTestResult)
+      } catch (err) {
+        console.log('Strategy 2 failed:', err?.message)
+      }
+
+      // Strategy 3: Try calling GetMetadataForGetEntity to trigger an error that might contain the URL
+      try {
+        console.log('Strategy 3: Attempting metadata call to extract organization URL from error...')
+        const metaResult = await MicrosoftDataverseService.GetMetadataForGetEntity('fmaint_utilisateurs')
+        if (metaResult?.success) {
+          console.log('Strategy 3: Metadata call succeeded')
+        }
+      } catch (err) {
+        const extractedUrl = extractOrgUrlFromError(err)
+        if (extractedUrl) {
+          organizationUrl = extractedUrl
+          console.log('✓ Strategy 3 SUCCESS - Organization URL extracted from error:', organizationUrl)
+          return organizationUrl
+        }
+        console.log('Strategy 3 failed to extract URL:', err?.message)
+      }
+
+      throw new Error('Impossible d\'initialiser la connexion Dataverse.')
+    } finally {
+      isInitializing = false
+    }
+  })()
+
+  return await initPromise
+}
 
 // Le connecteur générique "Microsoft Dataverse" peut renvoyer chaque ligne
 // soit à plat, soit enveloppée dans `dynamicProperties` selon la version —
@@ -33,38 +125,81 @@ function unwrap(row) {
 }
 
 async function listRecords(entityName, select, filter, orderby) {
-  const result = await MicrosoftDataverseService.ListRecords(entityName, PREFER_FORMATTED_VALUES, 'application/json', undefined, select, filter, orderby)
-  if (!result.success) {
-    throw new Error(result.error?.message || `Dataverse — échec de lecture "${entityName}".`)
+  try {
+    console.log(`📡 Fetching real data from Dataverse for ${entityName}...`)
+    
+    // Use ListRecords() which doesn't require organization URL
+    // This should work directly in Power Apps environment
+    const result = await MicrosoftDataverseService.ListRecords(
+      entityName,
+      PREFER_FORMATTED_VALUES,
+      'application/json',
+      undefined, // x_ms_odata_metadata_full
+      select,
+      filter,
+      orderby
+    )
+
+    if (result.success) {
+      console.log(`✓ Got ${result.data.value.length} records from Dataverse for ${entityName}`)
+      return result.data.value.map(unwrap)
+    }
+
+    throw new Error(result.error?.message || `Échec de lecture Dataverse pour ${entityName}.`)
+
+  } catch (error) {
+    console.error(`❌ Exception reading ${entityName}:`, error.message)
+    throw error
   }
-  return (result.data?.value || []).map(unwrap)
 }
 
 async function createRecord(entityName, item) {
-  const result = await MicrosoftDataverseService.CreateRecord(
-    `return=representation, ${PREFER_FORMATTED_VALUES}`,
-    'application/json',
-    entityName,
-    item,
-  )
-  if (!result.success) {
-    throw new Error(result.error?.message || `Dataverse — échec de création dans "${entityName}".`)
+  try {
+    console.log(`💾 Creating record in Dataverse for ${entityName}...`)
+    
+    const result = await MicrosoftDataverseService.CreateRecord(
+      `return=representation, ${PREFER_FORMATTED_VALUES}`,
+      'application/json',
+      entityName,
+      item
+    )
+
+    if (result.success) {
+      console.log(`✓ Record created successfully in ${entityName}`)
+      return unwrap(result.data)
+    }
+
+    throw new Error(result.error?.message || `Échec de création Dataverse pour ${entityName}.`)
+    
+  } catch (error) {
+    console.error(`❌ Exception creating ${entityName}:`, error.message)
+    throw error
   }
-  return unwrap(result.data)
 }
 
 async function updateRecord(entityName, recordId, item) {
-  const result = await MicrosoftDataverseService.UpdateRecord(
-    `return=representation, ${PREFER_FORMATTED_VALUES}`,
-    'application/json',
-    entityName,
-    recordId,
-    item,
-  )
-  if (!result.success) {
-    throw new Error(result.error?.message || `Dataverse — échec de mise à jour dans "${entityName}".`)
+  try {
+    console.log(`✏️ Updating record in Dataverse for ${entityName}...`)
+    
+    const result = await MicrosoftDataverseService.UpdateRecord(
+      `return=representation, ${PREFER_FORMATTED_VALUES}`,
+      'application/json',
+      entityName,
+      recordId,
+      item
+    )
+
+    if (result.success) {
+      console.log(`✓ Record updated successfully in ${entityName}`)
+      return unwrap(result.data)
+    }
+
+    throw new Error(result.error?.message || `Échec de mise à jour Dataverse pour ${entityName}.`)
+    
+  } catch (error) {
+    console.error(`❌ Exception updating ${entityName}:`, error.message)
+    throw error
   }
-  return unwrap(result.data)
 }
 
 // ---- Emplacements ----------------------------------------------------------
@@ -87,9 +222,7 @@ export async function createEmplacement(nouvelEmplacement) {
   }
   const r = await createRecord('fmaint_emplacements', payload)
 
-  const emplacement = { parentId: null, ...nouvelEmplacement, id: r.fmaint_emplacementid }
-  mockEmplacements.push(emplacement)
-  return emplacement
+  return { parentId: null, ...nouvelEmplacement, id: r.fmaint_emplacementid }
 }
 
 // ---- Catégories d'actif -----------------------------------------------------
@@ -110,9 +243,7 @@ export async function createCategorieActif(nouvelleCategorie) {
   }
   const r = await createRecord('fmaint_categoriedactifs', payload)
 
-  const categorie = { ...nouvelleCategorie, id: r.fmaint_categoriedactifid }
-  mockCategories.push(categorie)
-  return categorie
+  return { ...nouvelleCategorie, id: r.fmaint_categoriedactifid }
 }
 
 // ---- Agences -----------------------------------------------------------------
@@ -156,14 +287,14 @@ export async function getActifs() {
 }
 
 export async function createActif(nouvelActif) {
-  const categorie = mockCategories.find((c) => c.id === nouvelActif.categorieId)
-  const codeInventaire = await genererProchainCodeInventaire()
+  const codeInventaire = nouvelActif.codeInventaire || `FA-${Date.now()}`
 
   const payload = {
     fmaint_nom: nouvelActif.nom,
     fmaint_numerodeserie: nouvelActif.numeroSerie || '',
     fmaint_statut: STATUT_ACTIF_CODES[nouvelActif.statut] ?? STATUT_ACTIF_CODES['En service'],
     fmaint_valeur: Number(nouvelActif.valeur) || 0,
+    fmaint_codeinventaire: codeInventaire,
   }
   if (nouvelActif.dateAcquisition) payload.fmaint_datedacquisition = nouvelActif.dateAcquisition
   if (nouvelActif.dateFinGarantie) payload.fmaint_datedefindegarantie = nouvelActif.dateFinGarantie
@@ -174,16 +305,11 @@ export async function createActif(nouvelActif) {
   const actif = {
     etatCycleVie: 'En saisie',
     piecesJointes: [],
-    criticite: categorie?.criticiteParDefaut || 'Moyenne',
+    criticite: nouvelActif.criticite || 'Moyenne',
     ...nouvelActif,
     id: r.fmaint_actifid,
     codeInventaire,
   }
-  mockActifs.push(actif)
-  await ajouterAudit({
-    action: 'Actif — créé (En saisie)',
-    entite: 'actif', entiteId: actif.id, auteur: 'Système', details: actif.nom,
-  })
   return actif
 }
 
@@ -192,18 +318,7 @@ export async function updateActifStatut(id, statut) {
   if (code !== undefined) {
     await updateRecord('fmaint_actifs', id, { fmaint_statut: code })
   }
-  const actif = mockActifs.find((a) => a.id === id)
-  if (actif) {
-    actif.statut = statut
-    await ajouterAudit({
-      action: `Actif — statut changé en "${statut}"`,
-      entite: 'actif',
-      entiteId: id,
-      auteur: 'Système',
-      details: actif.nom,
-    })
-  }
-  return actif
+  return { id, statut }
 }
 
 // ---- Ordres de travail -------------------------------------------------------
@@ -225,16 +340,11 @@ export async function getOrdresTravail() {
   }))
 }
 
-// Création réelle dans Dataverse — même compromis que dataService.js : seul
-// le lien vers Actif est persisté à la création, le reste du cycle de vie
-// continue d'opérer sur mockOrdresTravail (partagé avec dataService.js via
-// l'export de référence, cf. import ci-dessus).
 export async function createOrdreTravail(nouvelOrdre) {
-  const actif = mockActifs.find((a) => a.id === nouvelOrdre.actifId)
   const origine = nouvelOrdre.origine || 'Corrective'
   const dateEcheance = nouvelOrdre.dateEcheance
-    || (origine === 'Corrective' ? dateEcheanceParCriticite(actif?.criticite) : null)
-  const numero = prochainNumeroOt(origine)
+    || (origine === 'Corrective' ? dateEcheanceParCriticite(nouvelOrdre.criticite) : null)
+  const numero = nouvelOrdre.numero || `OT-${Date.now()}`
 
   const payload = {
     fmaint_nomordre: nouvelOrdre.titre || numero,
@@ -261,11 +371,6 @@ export async function createOrdreTravail(nouvelOrdre) {
     id: r.fmaint_ordredetravailid,
     numero,
   }
-  mockOrdresTravail.push(ordre)
-  await ajouterAudit({
-    action: `OT ${ordre.numero} créé (${origine})`,
-    entite: 'ordreTravail', entiteId: ordre.id, auteur: 'Système', details: ordre.titre,
-  })
   return ordre
 }
 

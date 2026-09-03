@@ -25,7 +25,7 @@ import { Utilisateurs } from './components/Utilisateurs.jsx'
 import * as dataService from './services/dataClient.js'
 import { executerMoteurRegles } from './services/automationEngine.js'
 import { getPortalUser, deconnexionPortail } from './services/portalAuth.js'
-import { ROLES } from './data/mockData.js'
+import { ROLES } from './data/appConfig.js'
 
 export default function App() {
   // 'landing' -> 'login' -> 'app' : parcours d'entrée avant d'accéder à l'outil.
@@ -111,6 +111,9 @@ export default function App() {
   useEffect(() => {
     async function chargerDonnees() {
       try {
+        // Load all available data from Dataverse.
+        console.log('Loading data from Dataverse...')
+
         const [
           emp, cat, act, ot, tk, hist, pm, ech, dma, fapi, rap, frs, ctr,
           slar, slam, pen, vp, evals, clesData, mvc, proj, jal, taches, alertes, audit,

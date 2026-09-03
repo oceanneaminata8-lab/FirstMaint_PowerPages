@@ -15,6 +15,7 @@ import {
 } from './dataService.js'
 
 const PREFER_FORMATTED_VALUES = 'odata.include-annotations="OData.Community.Display.V1.FormattedValue"'
+const ORGANIZATION_URL = 'https://org19425b12.crm12.dynamics.com'
 
 // Store organization URL - obtained at initialization time
 let organizationUrl = null
@@ -128,13 +129,13 @@ async function listRecords(entityName, select, filter, orderby) {
   try {
     console.log(`📡 Fetching real data from Dataverse for ${entityName}...`)
     
-    // Use ListRecords() which doesn't require organization URL
-    // This should work directly in Power Apps environment
-    const result = await MicrosoftDataverseService.ListRecords(
+    const result = await MicrosoftDataverseService.ListRecordsWithOrganization(
+      ORGANIZATION_URL,
       entityName,
       PREFER_FORMATTED_VALUES,
       'application/json',
-      undefined, // x_ms_odata_metadata_full
+      undefined,
+      undefined,
       select,
       filter,
       orderby
@@ -157,9 +158,10 @@ async function createRecord(entityName, item) {
   try {
     console.log(`💾 Creating record in Dataverse for ${entityName}...`)
     
-    const result = await MicrosoftDataverseService.CreateRecord(
+    const result = await MicrosoftDataverseService.CreateRecordWithOrganization(
       `return=representation, ${PREFER_FORMATTED_VALUES}`,
       'application/json',
+      ORGANIZATION_URL,
       entityName,
       item
     )
@@ -181,9 +183,10 @@ async function updateRecord(entityName, recordId, item) {
   try {
     console.log(`✏️ Updating record in Dataverse for ${entityName}...`)
     
-    const result = await MicrosoftDataverseService.UpdateRecord(
+    const result = await MicrosoftDataverseService.UpdateRecordWithOrganization(
       `return=representation, ${PREFER_FORMATTED_VALUES}`,
       'application/json',
+      ORGANIZATION_URL,
       entityName,
       recordId,
       item

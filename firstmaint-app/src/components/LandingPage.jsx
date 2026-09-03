@@ -1,6 +1,5 @@
-import logoFirstMaint from '../images/company-logo-transparent.png'
-import heroBackground from '../images/hero-background.jpeg'
 import { Icon } from './Icons.jsx'
+import { BrandMark } from './BrandMark.jsx'
 
 const FONCTIONNALITES = [
   { titre: 'Actifs', icone: 'actifs', description: 'Inventaire complet des équipements avec fiche détail, historique d\'interventions et filtres avancés.' },
@@ -34,7 +33,7 @@ const STATS = [
 
 export function LandingPage({ onSeConnecter }) {
   return (
-    <div className="landing" style={{ backgroundImage: `url(${heroBackground})` }}>
+    <div className="landing">
       <div className="landing-utility-bar">
         <span>Afriland First Bank — Direction des Moyens Généraux</span>
         <span className="landing-utility-lang">FR · EN</span>
@@ -42,7 +41,7 @@ export function LandingPage({ onSeConnecter }) {
 
       <header className="landing-header">
         <div className="landing-brand">
-          <img src={logoFirstMaint} alt="FirstMaint" />
+          <BrandMark compact />
         </div>
         <nav className="landing-nav">
           <a href="#accueil" className="active">Accueil</a>
@@ -182,7 +181,7 @@ export function LandingPage({ onSeConnecter }) {
       <footer className="landing-footer">
         <div className="landing-footer-grid">
           <div className="landing-footer-brand">
-            <img src={logoFirstMaint} alt="FirstMaint" />
+            <BrandMark variant="inverse" compact />
             <p>Outil interne de gestion de maintenance d'Afriland First Bank.</p>
           </div>
           <div>

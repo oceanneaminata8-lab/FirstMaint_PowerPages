@@ -8,10 +8,18 @@ let tokenPromise = null
 
 async function fetchRequestVerificationToken() {
   const response = await fetch('/_layout/tokenhtml', { credentials: 'same-origin' })
+  if (!response.ok) {
+    throw new Error(`Endpoint de jeton Power Pages indisponible (${response.status}).`)
+  }
   const html = await response.text()
-  const match = html.match(/value="([^"]+)"/)
-  if (!match) throw new Error('Jeton anti-forgery introuvable (/_layout/tokenhtml).')
-  return match[1]
+  const documentToken = typeof DOMParser !== 'undefined'
+    ? new DOMParser().parseFromString(html, 'text/html').querySelector('[name="__RequestVerificationToken"]')?.value
+    : null
+  const match = html.match(/name\s*=\s*["']__RequestVerificationToken["'][^>]*value\s*=\s*["']([^"']+)["']/i)
+    || html.match(/value\s*=\s*["']([^"']+)["'][^>]*name\s*=\s*["']__RequestVerificationToken["']/i)
+  const token = documentToken || match?.[1]
+  if (!token) throw new Error('Jeton anti-forgery introuvable (/_layout/tokenhtml). Vérifiez que l’application est exécutée sur le site Power Pages publié.')
+  return token
 }
 
 // Le jeton est valable pour toute la session : on ne le récupère qu'une fois.

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import logoFirstMaint from '../images/company-logo-transparent.png'
 import { Icon } from './Icons.jsx'
+import { BrandMark } from './BrandMark.jsx'
 
 // Barre supérieure calquée sur l'entête OpenMaint/CMDBuild : logo à gauche,
 // liseré d'icônes utilitaires à droite (info, agenda, profil, alertes,
@@ -19,7 +19,7 @@ export function TopBar({ utilisateurEmail, role, alertesNonLues, onNaviguer, onD
   return (
     <header className="topbar">
       <div className="topbar-brand">
-        <img src={logoFirstMaint} alt="FirstMaint" />
+        <BrandMark compact />
       </div>
 
       <div className="topbar-icons">

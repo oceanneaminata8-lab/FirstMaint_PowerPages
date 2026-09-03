@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import logoFirstMaint from '../images/company-logo-transparent.png'
-import heroBackground from '../images/hero-background.jpeg'
+import { BrandMark } from './BrandMark.jsx'
 
 const STATS = [
   { valeur: '1987', label: 'Année de création' },
@@ -35,17 +34,12 @@ export function LoginPage({ onConnexion, onRetour }) {
 
   return (
     <div className="login-page">
-      <div
-        className="login-brand-panel"
-        style={{
-          backgroundImage: `linear-gradient(180deg, rgba(20,20,20,0.82) 0%, rgba(20,20,20,0.93) 65%, rgba(20,20,20,0.97) 100%), url(${heroBackground})`,
-        }}
-      >
+      <div className="login-brand-panel">
         <div className="landing-hero-pattern" aria-hidden="true" />
         <button className="login-back" onClick={onRetour}>← Retour à l'accueil</button>
 
         <div className="login-brand-panel-body">
-          <img src={logoFirstMaint} alt="FirstMaint" className="login-brand-logo" />
+          <BrandMark variant="inverse" />
           <h2>La maintenance d'un Groupe panafricain, pilotée avec précision.</h2>
           <p>
             FirstMaint centralise le suivi des actifs, des interventions et des
@@ -66,7 +60,7 @@ export function LoginPage({ onConnexion, onRetour }) {
 
       <div className="login-form-panel">
         <div className="login-card login-card-v2">
-          <img src={logoFirstMaint} alt="FirstMaint" className="login-card-logo" />
+          <BrandMark />
 
           <h1 className="login-card-heading">
             <span>FirstMaint</span>

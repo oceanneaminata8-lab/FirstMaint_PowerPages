@@ -164,6 +164,21 @@ function scoreEntityMatch(row, expectedEntityName) {
 
 async function resolveEntityInfo(expectedEntityName) {
   if (resolvedEntities.has(expectedEntityName)) return resolvedEntities.get(expectedEntityName)
+
+  if (expectedEntityName.startsWith('fmaint_')) {
+    const idField = ENTITY_ID_FIELDS[expectedEntityName]
+    const logicalName = idField?.replace(/id$/, '') || expectedEntityName.replace(/s$/, '')
+    const info = {
+      expectedEntityName,
+      entitySetName: expectedEntityName,
+      logicalName,
+      prefix: 'fmaint_',
+      idField: idField || `${logicalName}id`,
+    }
+    resolvedEntities.set(expectedEntityName, info)
+    return info
+  }
+
   const entities = await getDataverseEntities()
   const exact = entities.find((row) => row.EntitySetName === expectedEntityName || row.LogicalName === expectedEntityName)
   const best = exact || entities

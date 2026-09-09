@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:powerapps": "start pac code run && vite --config vite.config.powerapps.js",
     "build": "vite build",
     "build:powerapps": "vite build --config vite.config.powerapps.js",
     "preview": "vite preview"

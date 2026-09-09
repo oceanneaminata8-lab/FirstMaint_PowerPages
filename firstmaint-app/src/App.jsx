@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LandingPage } from './components/LandingPage.jsx'
 import { LoginPage } from './components/LoginPage.jsx'
+import { ProfilIntervenantForm } from './components/ProfilIntervenantForm.jsx'
 import { TopBar } from './components/TopBar.jsx'
 import { Sidebar } from './components/Sidebar.jsx'
 import { Dashboard } from './components/Dashboard.jsx'
@@ -32,6 +33,7 @@ export default function App() {
   const [vue, setVue] = useState('landing')
   const [utilisateurEmail, setUtilisateurEmail] = useState('')
   const [role, setRole] = useState(ROLES[0])
+  const [profilIntervenant, setProfilIntervenant] = useState(null)
 
   const [ongletActif, setOngletActif] = useState('dashboard')
   const [chargement, setChargement] = useState(true)
@@ -216,9 +218,11 @@ export default function App() {
     dataService.getOrCreateUtilisateurCourant(portalUser.email, nomPropose)
       .then((utilisateur) => {
         setUtilisateurEmail(utilisateur.email)
-        setRole(utilisateur.role || ROLES[0])
+        const roleEffectif = utilisateur.role || ROLES[0]
+        setRole(roleEffectif)
         setSiteId(utilisateur.siteId || null)
-        setVue('app')
+        setProfilIntervenant(null)
+        setVue(roleNecessiteProfilIntervenant(roleEffectif) ? 'profilIntervenant' : 'app')
       })
       .catch((error) => {
         console.error('Échec de récupération/création de l\'utilisateur courant :', error)
@@ -230,12 +234,30 @@ export default function App() {
   // Utilisateur réel dans Dataverse, exactement comme le ferait une vraie
   // session Entra ID (cf. useEffect ci-dessus). Évite qu'un utilisateur
   // puisse s'auto-attribuer un rôle en le choisissant dans un formulaire.
-  async function seConnecter(email) {
-    const utilisateur = await dataService.getOrCreateUtilisateurCourant(email, email)
+  function roleNecessiteProfilIntervenant(roleUtilisateur) {
+    return roleUtilisateur?.includes('Technicien') || roleUtilisateur?.includes('Prestataire')
+  }
+
+  async function seConnecter(email, roleChoisi) {
+    let utilisateur
+    try {
+      utilisateur = await dataService.getOrCreateUtilisateurCourant(email, email)
+    } catch (error) {
+      if (!String(error.message || '').includes('fmaint_utilisateurs')) throw error
+      utilisateur = {
+        id: `session-${email}`,
+        nom: email,
+        email,
+        role: roleChoisi || ROLES[0],
+        siteId: null,
+      }
+    }
+    const roleEffectif = roleChoisi || utilisateur.role || ROLES[0]
     setUtilisateurEmail(utilisateur.email)
-    setRole(utilisateur.role || ROLES[0])
+    setRole(roleEffectif)
     setSiteId(utilisateur.siteId || null)
-    setVue('app')
+    setProfilIntervenant(null)
+    setVue(roleNecessiteProfilIntervenant(roleEffectif) ? 'profilIntervenant' : 'app')
   }
 
   function seDeconnecter() {
@@ -246,6 +268,7 @@ export default function App() {
       return
     }
     setUtilisateurEmail('')
+    setProfilIntervenant(null)
     setOngletActif('dashboard')
     setActifSelectionneId(null)
     setVue('landing')
@@ -335,7 +358,15 @@ export default function App() {
     await rafraichirApresMoteur()
   }
 
-  const auteurCourant = () => utilisateurEmail || role
+  const auteurCourant = () => {
+    if (profilIntervenant?.nom) {
+      const precision = profilIntervenant.type === 'Prestataire'
+        ? (profilIntervenant.entreprise || 'Prestataire')
+        : 'Technicien'
+      return `${profilIntervenant.nom} - ${precision}`
+    }
+    return utilisateurEmail || role
+  }
 
   async function changerStatutOrdreTravail(id, statut) {
     await dataService.updateOrdreTravailStatut(id, statut, auteurCourant())
@@ -437,18 +468,6 @@ export default function App() {
     setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, statut } : t)))
   }
 
-  function chargerCommentairesTicket(ticketId) {
-    return dataService.getCommentairesTicket(ticketId)
-  }
-
-  // Un message posté par un profil DMG (côté maintenance) est affiché comme
-  // une réponse de la banque ; les autres profils (site demandeur) comme un
-  // message entrant.
-  function envoyerCommentaireTicket(ticketId, message) {
-    const estReponseBanque = role.includes('DMG')
-    return dataService.createCommentaireTicket(ticketId, message, utilisateurEmail || role, estReponseBanque)
-  }
-
   async function ajouterPieceJointeTicket(id, nomFichier) {
     const mis = await dataService.ajouterPieceJointeTicket(id, nomFichier)
     setTickets((prev) => prev.map((t) => (t.id === id ? mis : t)))
@@ -508,6 +527,20 @@ export default function App() {
     setFournisseurs((prev) => [cree, ...prev])
   }
 
+  async function enregistrerProfilIntervenant(profil) {
+    const profilEnregistre = await dataService.enregistrerProfilIntervenant(profil)
+    setProfilIntervenant(profilEnregistre)
+    if (profilEnregistre.type === 'Prestataire' && profilEnregistre.fournisseur) {
+      setFournisseurs((prev) => [profilEnregistre.fournisseur, ...prev.filter((f) => f.id !== profilEnregistre.fournisseur.id)])
+    }
+    if (profilEnregistre.type === 'Technicien' && profilEnregistre.technicien) {
+      setOrdresTravail((prev) => prev.map((o) => (
+        o.technicien === utilisateurEmail ? { ...o, technicien: profilEnregistre.technicien.nom } : o
+      )))
+    }
+    setVue('app')
+  }
+
   async function creerContrat(nouveauContrat) {
     const cree = await dataService.createContrat(nouveauContrat)
     setContrats((prev) => [cree, ...prev])
@@ -550,6 +583,11 @@ export default function App() {
     setJournalAudit(await dataService.getJournalAudit())
   }
 
+  async function creerCle(nouvelleCle) {
+    const cree = await dataService.createCle(nouvelleCle)
+    setCles((prev) => [cree, ...prev])
+  }
+
   async function creerProjetImmobilier(nouveauProjet) {
     const cree = await dataService.createProjetImmobilier(nouveauProjet)
     setProjetsImmobiliers((prev) => [cree, ...prev])
@@ -587,6 +625,16 @@ export default function App() {
     setTachesWorkflow((prev) => prev.map((t) => (t.id === id ? { ...t, statut } : t)))
   }
 
+  async function creerTacheWorkflow(nouvelleTache) {
+    const cree = await dataService.createTacheWorkflow(nouvelleTache)
+    setTachesWorkflow((prev) => [cree, ...prev])
+  }
+
+  async function creerAlerteAutomatique(nouvelleAlerte) {
+    const cree = await dataService.createAlerteAutomatique(nouvelleAlerte)
+    setAlertesAutomatiques((prev) => [cree, ...prev])
+  }
+
   async function marquerAlerteLue(id) {
     await dataService.marquerAlerteLue(id)
     setAlertesAutomatiques((prev) => prev.map((a) => (a.id === id ? { ...a, lu: true } : a)))
@@ -598,6 +646,17 @@ export default function App() {
 
   if (vue === 'login') {
     return <LoginPage onConnexion={seConnecter} onRetour={() => setVue('landing')} />
+  }
+
+  if (vue === 'profilIntervenant') {
+    return (
+      <ProfilIntervenantForm
+        emailConnexion={utilisateurEmail}
+        role={role}
+        onEnregistrer={enregistrerProfilIntervenant}
+        onDeconnexion={seDeconnecter}
+      />
+    )
   }
 
   if (chargement) {
@@ -745,8 +804,6 @@ export default function App() {
             onChangerStatut={changerStatutTicket}
             onAjouterPieceJointe={ajouterPieceJointeTicket}
             onTransformerEnOrdre={transformerTicketEnOrdre}
-            onChargerCommentaires={chargerCommentairesTicket}
-            onEnvoyerCommentaire={envoyerCommentaireTicket}
           />
         )}
         {ongletActif === 'maintenancePreventive' && (
@@ -823,6 +880,7 @@ export default function App() {
             mouvementsCles={mouvementsCles}
             emplacements={emplacements}
             journalAudit={journalAudit}
+            onCreerCle={creerCle}
             onCreerMouvement={creerMouvementCle}
           />
         )}
@@ -841,6 +899,8 @@ export default function App() {
           <TachesAlertes
             tachesWorkflow={tachesWorkflow}
             alertesAutomatiques={alertesAutomatiques}
+            onCreerTache={creerTacheWorkflow}
+            onCreerAlerte={creerAlerteAutomatique}
             onChangerStatutTache={changerStatutTacheWorkflow}
             onMarquerLue={marquerAlerteLue}
             onExecuterMoteur={executerMoteurEtRafraichir}

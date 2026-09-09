@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import { BrandMark } from './BrandMark.jsx'
+import { ROLES } from '../data/appConfig.js'
 
 const STATS = [
-  { valeur: '1987', label: 'Année de création' },
-  { valeur: '9 pays', label: 'Présence panafricaine' },
-  { valeur: 'Yaoundé', label: 'Siège du Groupe' },
+  { valeur: '1987', label: 'Annee de creation' },
+  { valeur: '9 pays', label: 'Presence panafricaine' },
+  { valeur: 'Yaounde', label: 'Siege du Groupe' },
 ]
 
-// Connexion par email uniquement : le rôle n'est jamais saisi ici, il est
-// retrouvé (ou attribué par défaut au premier accès) côté Dataverse par
-// onConnexion — voir seConnecter dans App.jsx. Personne ne peut donc
-// s'attribuer un profil en le choisissant dans ce formulaire.
 export function LoginPage({ onConnexion, onRetour }) {
   const [identifiant, setIdentifiant] = useState('')
+  const [roleChoisi, setRoleChoisi] = useState(ROLES[0])
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState('')
 
@@ -25,9 +23,9 @@ export function LoginPage({ onConnexion, onRetour }) {
     setErreur('')
     setEnCours(true)
     try {
-      await onConnexion(identifiant.trim())
+      await onConnexion(identifiant.trim(), roleChoisi)
     } catch (error) {
-      setErreur(error.message || 'Échec de connexion. Veuillez réessayer.')
+      setErreur(error.message || 'Echec de connexion. Veuillez reessayer.')
       setEnCours(false)
     }
   }
@@ -36,14 +34,14 @@ export function LoginPage({ onConnexion, onRetour }) {
     <div className="login-page">
       <div className="login-brand-panel">
         <div className="landing-hero-pattern" aria-hidden="true" />
-        <button className="login-back" onClick={onRetour}>← Retour à l'accueil</button>
+        <button className="login-back" onClick={onRetour}>Retour a l'accueil</button>
 
         <div className="login-brand-panel-body">
           <BrandMark variant="inverse" />
-          <h2>La maintenance d'un Groupe panafricain, pilotée avec précision.</h2>
+          <h2>La maintenance d'un Groupe panafricain, pilotee avec precision.</h2>
           <p>
             FirstMaint centralise le suivi des actifs, des interventions et des
-            sites d'Afriland First Bank — du siège de Yaoundé à ses agences à
+            sites d'Afriland First Bank, du siege de Yaounde a ses agences a
             travers le continent.
           </p>
 
@@ -67,9 +65,8 @@ export function LoginPage({ onConnexion, onRetour }) {
             <span className="accent">Afriland</span>
           </h1>
           <p className="login-subtitle">
-            Connexion au système FirstMaint. Renseignez votre adresse email
-            professionnelle pour accéder à votre espace de gestion de
-            maintenance — votre profil est déterminé automatiquement.
+            Renseignez votre adresse email professionnelle, puis choisissez le
+            profil a utiliser pour afficher les modules correspondants.
           </p>
 
           <form onSubmit={soumettre} className="login-form">
@@ -79,25 +76,33 @@ export function LoginPage({ onConnexion, onRetour }) {
                 type="email"
                 value={identifiant}
                 onChange={(e) => setIdentifiant(e.target.value)}
-                placeholder="jean.mballa@afrilandfirstbank.com"
                 autoFocus
               />
+            </div>
+
+            <div className="form-field">
+              <label>Role</label>
+              <select value={roleChoisi} onChange={(e) => setRoleChoisi(e.target.value)}>
+                {ROLES.map((role) => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
             </div>
 
             {erreur && <div className="login-erreur">{erreur}</div>}
 
             <button type="submit" className="login-card-submit" disabled={enCours}>
-              {enCours ? 'Connexion en cours…' : 'Connexion'}
+              {enCours ? 'Connexion en cours...' : 'Connexion'}
             </button>
           </form>
 
           <div className="login-card-divider" />
 
           <div className="login-card-links">
-            <button className="link-button" onClick={onRetour}>Retour à l'accueil</button>
+            <button className="link-button" onClick={onRetour}>Retour a l'accueil</button>
           </div>
 
-          <p className="login-card-footnote">FirstMaint — Afriland First Bank — {new Date().getFullYear()}</p>
+          <p className="login-card-footnote">FirstMaint - Afriland First Bank - {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>

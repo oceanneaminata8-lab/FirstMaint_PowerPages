@@ -1,0 +1,7 @@
+.tmp-*/
+.tmp-*.zip
+node_modules/
+dist/
+dist-powerapps/
+*.tsbuildinfo
+power.config.old-*.json

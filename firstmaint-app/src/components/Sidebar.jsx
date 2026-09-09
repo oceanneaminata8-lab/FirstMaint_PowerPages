@@ -85,6 +85,8 @@ function groupeDeLActif(active) {
 // chaque rôle ne voit que les écrans pertinents à sa mission. Une valeur absente
 // de cette table (ex. Gestionnaire DMG) garde l'accès complet par défaut.
 const CLES_PAR_ROLE = {
+  'Technicien': ['dashboard', 'ordresTravail', 'tickets', 'piecesRechange'],
+  'Prestataire': ['dashboard', 'ordresTravail', 'tickets', 'piecesRechange'],
   'Technicien / Prestataire': ['dashboard', 'ordresTravail', 'tickets', 'piecesRechange'],
   'Responsable de site': ['dashboard', 'actifs', 'emplacements', 'ordresTravail', 'tickets', 'maintenancePreventive', 'clesAcces', 'piecesRechange', 'consommationEnergie'],
   'Responsable DMG': ['dashboard', 'afrilandDashboard', 'actifs', 'emplacements', 'fournisseurs', 'evaluationsPrestataires', 'projetsImmobiliers', 'tachesAlertes', 'consommationEnergie'],

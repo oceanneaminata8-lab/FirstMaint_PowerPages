@@ -20,6 +20,11 @@ export function Dashboard({ actifs, ordresTravail, tickets = [], emplacements, r
     })))
   }
 
+  const actifsEnService = actifs.filter((a) => a.statut === 'En service' || a.etatCycleVie === 'Actif').length
+  const otOuverts = ordresTravail.filter((o) => !['Résolu', 'Clôturé', 'Fermé', 'Terminé'].includes(o.statut)).length
+  const ticketsOuverts = tickets.filter((t) => !['Résolu', 'Fermé', 'Clôturé'].includes(t.statut)).length
+  const urgences = ordresTravail.filter((o) => ['Haute', 'Critique'].includes(o.priorite) || o.urgent).length
+
   return (
     <>
       <div className="page-header">
@@ -29,6 +34,52 @@ export function Dashboard({ actifs, ordresTravail, tickets = [], emplacements, r
         <div className="no-print page-actions">
           <button className="btn secondary" onClick={exporter}>Exporter CSV</button>
           <button className="btn secondary" onClick={() => window.print()}>Imprimer / PDF</button>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi-card kpi-card-maroon">
+          <div className="kpi-icon">A</div>
+          <div className="kpi-body">
+            <span className="label">Actifs suivis</span>
+            <span className="value">{actifs.length}</span>
+          </div>
+        </div>
+        <div className="kpi-card kpi-card-teal">
+          <div className="kpi-icon">OT</div>
+          <div className="kpi-body">
+            <span className="label">OT ouverts</span>
+            <span className="value">{otOuverts}</span>
+          </div>
+        </div>
+        <div className="kpi-card kpi-card-gold">
+          <div className="kpi-icon">T</div>
+          <div className="kpi-body">
+            <span className="label">Tickets ouverts</span>
+            <span className="value">{ticketsOuverts}</span>
+          </div>
+        </div>
+        <div className={`kpi-card ${urgences > 0 ? 'kpi-card-alerte' : ''}`}>
+          <div className="kpi-icon">!</div>
+          <div className="kpi-body">
+            <span className="label">Priorités hautes</span>
+            <span className="value">{urgences}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="kpi-grid dashboard-secondary-kpis">
+        <div className="kpi-card">
+          <div className="kpi-body">
+            <span className="label">Actifs en service</span>
+            <span className="value">{actifsEnService}</span>
+          </div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-body">
+            <span className="label">Sites / emplacements</span>
+            <span className="value">{emplacements.length}</span>
+          </div>
         </div>
       </div>
 

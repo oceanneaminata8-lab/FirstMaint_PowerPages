@@ -199,6 +199,36 @@ export async function getTechniciens() {
   }
 }
 
+export async function createTechnicien(nouveauTechnicien) {
+  try {
+    const payload = {
+      fmaint_nomtechnicien: nouveauTechnicien.nom,
+      fmaint_telephone: nouveauTechnicien.telephone || '',
+      fmaint_email: nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
+      fmaint_domaine: nouveauTechnicien.domaine || '',
+      fmaint_specialite: nouveauTechnicien.specialite || '',
+      fmaint_zone: nouveauTechnicien.ville || '',
+      fmaint_reference: nouveauTechnicien.matricule || '',
+    }
+    const r = await portalPost('fmaint_techniciens', payload)
+    return {
+      id: r.fmaint_technicienid,
+      nom: r.fmaint_nomtechnicien || nouveauTechnicien.nom,
+      telephone: r.fmaint_telephone || nouveauTechnicien.telephone || '',
+      email: r.fmaint_email || nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
+      domaine: r.fmaint_domaine || nouveauTechnicien.domaine || '',
+      specialite: r.fmaint_specialite || nouveauTechnicien.specialite || '',
+    }
+  } catch (error) {
+    console.error('Erreur lors de la creation du technicien:', error)
+    return {
+      ...nouveauTechnicien,
+      id: `tech-${Date.now()}`,
+      email: nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
+    }
+  }
+}
+
 // ============================================================================
 // ACTIFS - Dataverse fmaint_actifs
 // ============================================================================
@@ -843,6 +873,40 @@ export async function createFournisseur(nouveauFournisseur) {
   return { ...nouveauFournisseur, id: `frs-${Date.now()}` }
 }
 
+export async function enregistrerProfilIntervenant(profil) {
+  const profilComplet = {
+    ...profil,
+    id: `int-${Date.now()}`,
+    dateEnregistrement: new Date().toISOString(),
+  }
+
+  if (profil.type === 'Prestataire') {
+    const fournisseur = await createFournisseur({
+      nom: profil.entreprise || profil.nom,
+      contact: profil.nom,
+      telephone: profil.telephone,
+      email: profil.emailContact,
+      specialite: profil.specialite,
+      domaine: profil.domaine,
+      rccm: profil.matricule,
+      statutPrestataire: 'Actif',
+      ville: profil.ville,
+    })
+    return { ...profilComplet, fournisseur }
+  }
+
+  const technicien = await createTechnicien({
+    nom: profil.nom,
+    telephone: profil.telephone,
+    email: profil.emailContact,
+    domaine: profil.domaine,
+    specialite: profil.specialite,
+    ville: profil.ville,
+    matricule: profil.matricule,
+  })
+  return { ...profilComplet, technicien }
+}
+
 export async function getContrats() {
   return []
 }
@@ -943,12 +1007,20 @@ export async function getTachesWorkflow() {
   return []
 }
 
+export async function createTacheWorkflow(nouvelleTache) {
+  return { ...nouvelleTache, id: `tw-${Date.now()}` }
+}
+
 export async function updateTacheWorkflowStatut(id, statut) {
   return { id, statut }
 }
 
 export async function getAlertesAutomatiques() {
   return []
+}
+
+export async function createAlerteAutomatique(nouvelleAlerte) {
+  return { ...nouvelleAlerte, id: `alert-${Date.now()}` }
 }
 
 export async function marquerAlerteLue(id) {
@@ -983,15 +1055,15 @@ export async function createConsommationEnergie(nouvelleConso) {
 // UTILISATEURS - Dataverse fmaint_utilisateurs
 // ============================================================================
 
-const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_name,fmaint_email,fmaint_role,fmaint_statut'
+const CHAMPS_UTILISATEUR = 'fmaint_utilisateurid,fmaint_nomutilisateur,fmaint_email,statecode'
 
 function mapUtilisateur(r) {
   return {
     id: r.fmaint_utilisateurid,
-    nom: r.fmaint_name,
+    nom: r.fmaint_nomutilisateur,
     email: r.fmaint_email,
-    role: r.fmaint_role,
-    statut: r.fmaint_statut || 'Actif',
+    role: r.fmaint_role || 'Opérateur DMG',
+    statut: getFormatted(r, 'statecode') || 'Actif',
   }
 }
 
@@ -999,7 +1071,7 @@ export async function getUtilisateurs() {
   try {
     const rows = await portalGet(
       'fmaint_utilisateurs',
-      `?$select=${CHAMPS_UTILISATEUR}&$orderby=fmaint_name asc`
+      `?$select=${CHAMPS_UTILISATEUR}&$orderby=fmaint_nomutilisateur asc`
     )
     return rows.map(mapUtilisateur)
   } catch (error) {
@@ -1011,10 +1083,8 @@ export async function getUtilisateurs() {
 export async function createUtilisateur(nouvelUtilisateur) {
   try {
     const payload = {
-      fmaint_name: nouvelUtilisateur.nom,
+      fmaint_nomutilisateur: nouvelUtilisateur.nom,
       fmaint_email: nouvelUtilisateur.email,
-      fmaint_role: nouvelUtilisateur.role || 'Opérateur DMG',
-      fmaint_statut: nouvelUtilisateur.statut || 'Actif',
     }
     
     const r = await portalPost('fmaint_utilisateurs', payload)
@@ -1027,8 +1097,7 @@ export async function createUtilisateur(nouvelUtilisateur) {
 
 export async function updateUtilisateurRole(id, role) {
   try {
-    const r = await portalPatch('fmaint_utilisateurs', id, { fmaint_role: role })
-    return mapUtilisateur(r)
+    throw new Error('La table fmaint_utilisateurs ne contient pas encore de colonne de rôle.')
   } catch (error) {
     console.error('Erreur lors de la mise à jour du rôle:', error)
     throw error
@@ -1037,7 +1106,7 @@ export async function updateUtilisateurRole(id, role) {
 
 export async function updateUtilisateurStatut(id, statut) {
   try {
-    const r = await portalPatch('fmaint_utilisateurs', id, { fmaint_statut: statut })
+    const r = await portalPatch('fmaint_utilisateurs', id, { statecode: statut === 'Actif' ? 0 : 1 })
     return mapUtilisateur(r)
   } catch (error) {
     console.error('Erreur lors de la mise à jour du statut utilisateur:', error)

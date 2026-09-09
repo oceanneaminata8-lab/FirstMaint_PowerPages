@@ -36,6 +36,7 @@ export function ActifsList({
   const inputFichierRef = useRef(null)
   const [messageImport, setMessageImport] = useState('')
   const [rejetsImport, setRejetsImport] = useState([])
+  const [erreurCreation, setErreurCreation] = useState('')
 
   const actifsFiltres = actifs.filter((actif) => {
     if (filtreStatut && actif.statut !== filtreStatut) return false
@@ -55,8 +56,14 @@ export function ActifsList({
       setOuvert(false)
       return
     }
-    const code = await onGenererCodeInventaire()
+    let code = `FA-${Date.now()}`
+    try {
+      code = await onGenererCodeInventaire()
+    } catch (error) {
+      console.warn('Impossible de générer le code inventaire automatiquement:', error)
+    }
     setCodeInventairePreview(code)
+    setForm((f) => ({ ...f, codeInventaire: code }))
     setOuvert(true)
   }
 
@@ -67,12 +74,17 @@ export function ActifsList({
     setForm({ ...form, categorieId, criticite: categorie?.criticiteParDefaut || form.criticite })
   }
 
-  function soumettre(e) {
+  async function soumettre(e) {
     e.preventDefault()
     if (!form.nom.trim()) return
-    onCreer({ ...form, valeur: Number(form.valeur) || 0 })
-    setForm({ ...form, nom: '', numeroSerie: '', dateAcquisition: '', dateFinGarantie: '', valeur: '', attributsSpecifiques: '' })
-    setOuvert(false)
+    setErreurCreation('')
+    try {
+      await onCreer({ ...form, codeInventaire: codeInventairePreview, valeur: Number(form.valeur) || 0 })
+      setForm({ ...form, nom: '', numeroSerie: '', dateAcquisition: '', dateFinGarantie: '', valeur: '', attributsSpecifiques: '' })
+      setOuvert(false)
+    } catch (error) {
+      setErreurCreation(error.message || 'Impossible de creer cet actif.')
+    }
   }
 
   async function creerNouveauLocal() {
@@ -210,6 +222,7 @@ export function ActifsList({
               <input type="number" value={form.valeur} onChange={(e) => setForm({ ...form, valeur: e.target.value })} />
             </div>
             <div className="form-actions">
+              {erreurCreation && <div className="login-erreur" style={{ marginRight: 'auto' }}>{erreurCreation}</div>}
               <button type="button" className="btn secondary" onClick={() => setOuvert(false)}>Annuler</button>
               <button type="submit" className="btn">Créer l'actif (En saisie)</button>
             </div>

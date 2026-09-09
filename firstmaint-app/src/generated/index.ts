@@ -4,7 +4,16 @@
  */
 
 // Models
+export * as CommonModels from './models/CommonModels';
+export * as FicheClotureModel from './models/FicheClotureModel';
 export * as MicrosoftDataverseModel from './models/MicrosoftDataverseModel';
+export * as Office365UsersModel from './models/Office365UsersModel';
+export * as R_seau_AgenceModel from './models/R_seau_AgenceModel';
+export * as UtilisateursModel from './models/UtilisateursModel';
 
 // Services
+export * from './services/FicheClotureService';
 export * from './services/MicrosoftDataverseService';
+export * from './services/Office365UsersService';
+export * from './services/R_seau_AgenceService';
+export * from './services/UtilisateursService';

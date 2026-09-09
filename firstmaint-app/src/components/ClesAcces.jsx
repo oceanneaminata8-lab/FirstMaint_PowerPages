@@ -3,9 +3,16 @@ import { EmplacementChain } from './EmplacementChain.jsx'
 
 const STATUTS_CLE = { 'Disponible': 'succes', 'En possession': 'attention', 'Perdue': 'urgent' }
 const ACTIONS = ['Retrait', 'Retour', 'Perte signalée']
+const TYPES_CLE = ['Clé physique', 'Badge', 'Carte accès', 'Autre']
+const CLASSIFICATIONS = ['Standard', 'Élevée']
 
-export function ClesAcces({ cles, mouvementsCles, emplacements, journalAudit, onCreerMouvement }) {
+export function ClesAcces({ cles, mouvementsCles, emplacements, journalAudit, onCreerCle, onCreerMouvement }) {
+  const [ouvertCle, setOuvertCle] = useState(false)
   const [ouvert, setOuvert] = useState(false)
+  const [formCle, setFormCle] = useState({
+    libelle: '', emplacementId: emplacements[0]?.id || '', type: 'Clé physique',
+    classification: 'Standard', detenteurActuel: '', statut: 'Disponible',
+  })
   const [form, setForm] = useState({
     cleId: cles[0]?.id || '', action: 'Retrait', personne: '',
     dateRestitutionPrevue: '', valideur1: '', valideur2: '', commentaire: '',
@@ -14,6 +21,22 @@ export function ClesAcces({ cles, mouvementsCles, emplacements, journalAudit, on
 
   const cleSelectionnee = cles.find((c) => c.id === form.cleId)
   const exigeDoubleValidation = cleSelectionnee?.classification === 'Élevée' && form.action === 'Retrait'
+
+  async function soumettreCle(e) {
+    e.preventDefault()
+    if (!formCle.libelle.trim()) return
+    setErreur('')
+    try {
+      await onCreerCle(formCle)
+      setFormCle({
+        libelle: '', emplacementId: emplacements[0]?.id || '', type: 'Clé physique',
+        classification: 'Standard', detenteurActuel: '', statut: 'Disponible',
+      })
+      setOuvertCle(false)
+    } catch (err) {
+      setErreur(err.message || 'Impossible de créer cette clé.')
+    }
+  }
 
   async function soumettre(e) {
     e.preventDefault()
@@ -39,7 +62,51 @@ export function ClesAcces({ cles, mouvementsCles, emplacements, journalAudit, on
       <div className="card">
         <div className="card-header">
           <h2>{cles.length} clé(s)/badge(s)</h2>
+          <button className="btn" onClick={() => setOuvertCle(!ouvertCle)}>
+            {ouvertCle ? 'Annuler' : '+ Nouvelle clé'}
+          </button>
         </div>
+        {ouvertCle && (
+          <form className="form-panel" onSubmit={soumettreCle}>
+            <div className="form-field">
+              <label>Libellé</label>
+              <input value={formCle.libelle} onChange={(e) => setFormCle({ ...formCle, libelle: e.target.value })} required />
+            </div>
+            <div className="form-field">
+              <label>Emplacement</label>
+              <select value={formCle.emplacementId} onChange={(e) => setFormCle({ ...formCle, emplacementId: e.target.value })}>
+                {emplacements.map((e) => <option key={e.id} value={e.id}>{e.nom}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Type</label>
+              <select value={formCle.type} onChange={(e) => setFormCle({ ...formCle, type: e.target.value })}>
+                {TYPES_CLE.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Classification</label>
+              <select value={formCle.classification} onChange={(e) => setFormCle({ ...formCle, classification: e.target.value })}>
+                {CLASSIFICATIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Détenteur actuel</label>
+              <input value={formCle.detenteurActuel} onChange={(e) => setFormCle({ ...formCle, detenteurActuel: e.target.value })} />
+            </div>
+            <div className="form-field">
+              <label>Statut</label>
+              <select value={formCle.statut} onChange={(e) => setFormCle({ ...formCle, statut: e.target.value })}>
+                {Object.keys(STATUTS_CLE).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            {erreur && <div className="login-erreur" style={{ gridColumn: '1 / -1' }}>{erreur}</div>}
+            <div className="form-actions">
+              <button type="button" className="btn secondary" onClick={() => setOuvertCle(false)}>Annuler</button>
+              <button type="submit" className="btn">Créer la clé</button>
+            </div>
+          </form>
+        )}
         <table>
           <thead>
             <tr>

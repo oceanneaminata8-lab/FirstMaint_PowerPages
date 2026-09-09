@@ -1,7 +1,8 @@
 export const ROLES = [
   'Gestionnaire DMG',
   'Responsable de site',
-  'Technicien / Prestataire',
+  'Technicien',
+  'Prestataire',
   'Responsable DMG',
   'Opérateur DMG',
 ]

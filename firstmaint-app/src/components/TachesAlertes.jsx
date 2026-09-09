@@ -1,7 +1,39 @@
+import { useState } from 'react'
+
 const STATUTS_TACHE = ['À faire', 'En cours', 'Terminé']
+const TYPES_TACHE = ['Validation', 'Intervention', 'Suivi', 'Contrôle', 'Autre']
+const NIVEAUX = ['Info', 'Avertissement', 'Critique']
 const NIVEAUX_ALERTE = { 'Info': 'info', 'Avertissement': 'attention', 'Critique': 'urgent' }
 
-export function TachesAlertes({ tachesWorkflow, alertesAutomatiques, onChangerStatutTache, onMarquerLue, onExecuterMoteur }) {
+export function TachesAlertes({
+  tachesWorkflow, alertesAutomatiques, onCreerTache, onCreerAlerte,
+  onChangerStatutTache, onMarquerLue, onExecuterMoteur,
+}) {
+  const [ouvertTache, setOuvertTache] = useState(false)
+  const [ouvertAlerte, setOuvertAlerte] = useState(false)
+  const [formTache, setFormTache] = useState({
+    titre: '', description: '', type: 'Suivi', assigneA: '', dateEcheance: '', statut: 'À faire',
+  })
+  const [formAlerte, setFormAlerte] = useState({
+    titre: '', description: '', source: 'Saisie manuelle', niveau: 'Info', assigneA: '', lu: false,
+  })
+
+  function soumettreTache(e) {
+    e.preventDefault()
+    if (!formTache.titre.trim()) return
+    onCreerTache(formTache)
+    setFormTache({ titre: '', description: '', type: 'Suivi', assigneA: '', dateEcheance: '', statut: 'À faire' })
+    setOuvertTache(false)
+  }
+
+  function soumettreAlerte(e) {
+    e.preventDefault()
+    if (!formAlerte.titre.trim()) return
+    onCreerAlerte({ ...formAlerte, date: new Date().toISOString().slice(0, 10) })
+    setFormAlerte({ titre: '', description: '', source: 'Saisie manuelle', niveau: 'Info', assigneA: '', lu: false })
+    setOuvertAlerte(false)
+  }
+
   return (
     <>
       <div className="page-header">
@@ -21,7 +53,40 @@ export function TachesAlertes({ tachesWorkflow, alertesAutomatiques, onChangerSt
       <div className="card">
         <div className="card-header">
           <h2>{tachesWorkflow.length} tâche(s) workflow</h2>
+          <button className="btn" onClick={() => setOuvertTache(!ouvertTache)}>
+            {ouvertTache ? 'Annuler' : '+ Nouvelle tâche'}
+          </button>
         </div>
+        {ouvertTache && (
+          <form className="form-panel" onSubmit={soumettreTache}>
+            <div className="form-field">
+              <label>Titre</label>
+              <input value={formTache.titre} onChange={(e) => setFormTache({ ...formTache, titre: e.target.value })} required />
+            </div>
+            <div className="form-field">
+              <label>Type</label>
+              <select value={formTache.type} onChange={(e) => setFormTache({ ...formTache, type: e.target.value })}>
+                {TYPES_TACHE.map((type) => <option key={type} value={type}>{type}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Assigné à</label>
+              <input value={formTache.assigneA} onChange={(e) => setFormTache({ ...formTache, assigneA: e.target.value })} />
+            </div>
+            <div className="form-field">
+              <label>Échéance</label>
+              <input type="date" value={formTache.dateEcheance} onChange={(e) => setFormTache({ ...formTache, dateEcheance: e.target.value })} />
+            </div>
+            <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Description</label>
+              <textarea rows={2} value={formTache.description} onChange={(e) => setFormTache({ ...formTache, description: e.target.value })} />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn secondary" onClick={() => setOuvertTache(false)}>Annuler</button>
+              <button type="submit" className="btn">Créer la tâche</button>
+            </div>
+          </form>
+        )}
         <table>
           <thead>
             <tr>
@@ -60,7 +125,40 @@ export function TachesAlertes({ tachesWorkflow, alertesAutomatiques, onChangerSt
       <div className="card">
         <div className="card-header">
           <h2>{alertesAutomatiques.length} alerte(s)</h2>
+          <button className="btn" onClick={() => setOuvertAlerte(!ouvertAlerte)}>
+            {ouvertAlerte ? 'Annuler' : '+ Nouvelle alerte'}
+          </button>
         </div>
+        {ouvertAlerte && (
+          <form className="form-panel" onSubmit={soumettreAlerte}>
+            <div className="form-field">
+              <label>Titre</label>
+              <input value={formAlerte.titre} onChange={(e) => setFormAlerte({ ...formAlerte, titre: e.target.value })} required />
+            </div>
+            <div className="form-field">
+              <label>Niveau</label>
+              <select value={formAlerte.niveau} onChange={(e) => setFormAlerte({ ...formAlerte, niveau: e.target.value })}>
+                {NIVEAUX.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Source</label>
+              <input value={formAlerte.source} onChange={(e) => setFormAlerte({ ...formAlerte, source: e.target.value })} />
+            </div>
+            <div className="form-field">
+              <label>Assigné à</label>
+              <input value={formAlerte.assigneA} onChange={(e) => setFormAlerte({ ...formAlerte, assigneA: e.target.value })} />
+            </div>
+            <div className="form-field" style={{ gridColumn: '1 / -1' }}>
+              <label>Description</label>
+              <textarea rows={2} value={formAlerte.description} onChange={(e) => setFormAlerte({ ...formAlerte, description: e.target.value })} />
+            </div>
+            <div className="form-actions">
+              <button type="button" className="btn secondary" onClick={() => setOuvertAlerte(false)}>Annuler</button>
+              <button type="submit" className="btn">Créer l'alerte</button>
+            </div>
+          </form>
+        )}
         <table>
           <thead>
             <tr>

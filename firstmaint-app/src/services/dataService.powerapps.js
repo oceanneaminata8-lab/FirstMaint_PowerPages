@@ -1153,7 +1153,7 @@ export async function updateActifStatut(id, statut) {
 
 // ---- Ordres de travail -------------------------------------------------------
 export async function getOrdresTravail() {
-  const rows = await safeListRecords('fmaint_ordredetravails', 'fmaint_ordredetravailid,fmaint_nomordre,statecode,fmaint_urgent,_fmaint_technicienid_value,_fmaint_actifid_value,fmaint_dateintervention,fmaint_dureeheures')
+  const rows = await safeListRecords('fmaint_ordredetravails', 'fmaint_ordredetravailid,fmaint_nomordre,statecode,fmaint_urgent,_fmaint_technicienid_value,fmaint_dateintervention,fmaint_dureeheures')
   return rows.map((r) => ({
     id: r.fmaint_ordredetravailid,
     numero: r.fmaint_nomordre,
@@ -1163,7 +1163,7 @@ export async function getOrdresTravail() {
     technicien: getFormatted(r, '_fmaint_technicienid_value') || null,
     dateEcheance: r.fmaint_dateintervention ? r.fmaint_dateintervention.slice(0, 10) : null,
     dureeHeures: r.fmaint_dureeheures || 0,
-    actifId: r._fmaint_actifid_value || null,
+    actifId: null,
     checklist: [],
     piecesJointes: [],
     origine: 'Corrective',
@@ -1181,7 +1181,7 @@ export async function createOrdreTravail(nouvelOrdre) {
     fmaint_urgent: nouvelOrdre.priorite === 'Critique',
   }
   if (dateEcheance) payload.fmaint_dateintervention = dateEcheance
-  if (nouvelOrdre.actifId) payload['fmaint_ActifID@odata.bind'] = `/fmaint_actifs(${nouvelOrdre.actifId})`
+  // La table fmaint_ordredetravail dans l'environnement FirstMaint n'a pas de lookup Actif.
   const r = await safeCreateRecord('fmaint_ordredetravails', payload)
 
   const ordre = {

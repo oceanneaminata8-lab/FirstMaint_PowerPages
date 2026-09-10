@@ -1046,15 +1046,15 @@ export async function getAgences() {
 export async function getTechniciens() {
   const rows = await safeListRecords(
     'fmaint_techniciens',
-    'fmaint_technicienid,fmaint_nomtechnicien,fmaint_telephone,fmaint_email,fmaint_domaine,fmaint_specialite,fmaint_zone,fmaint_reference',
+    'fmaint_technicienid,fmaint_nomtechnicien,fmaint_telephone',
   )
   return rows.map((r) => ({
     id: r.fmaint_technicienid,
     nom: r.fmaint_nomtechnicien,
     telephone: r.fmaint_telephone || '',
-    email: r.fmaint_email || '',
-    domaine: r.fmaint_domaine || '',
-    specialite: r.fmaint_specialite || '',
+    email: '',
+    domaine: '',
+    specialite: '',
   }))
 }
 
@@ -1062,11 +1062,6 @@ export async function createTechnicien(nouveauTechnicien) {
   const payloadComplet = {
     fmaint_nomtechnicien: nouveauTechnicien.nom,
     fmaint_telephone: nouveauTechnicien.telephone || '',
-    fmaint_email: nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
-    fmaint_domaine: nouveauTechnicien.domaine || '',
-    fmaint_specialite: nouveauTechnicien.specialite || '',
-    fmaint_zone: nouveauTechnicien.ville || '',
-    fmaint_reference: nouveauTechnicien.matricule || '',
   }
   try {
     const r = await safeCreateRecord('fmaint_techniciens', payloadComplet)
@@ -1074,9 +1069,9 @@ export async function createTechnicien(nouveauTechnicien) {
       id: r.fmaint_technicienid,
       nom: r.fmaint_nomtechnicien || nouveauTechnicien.nom,
       telephone: r.fmaint_telephone || nouveauTechnicien.telephone || '',
-      email: r.fmaint_email || nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
-      domaine: r.fmaint_domaine || nouveauTechnicien.domaine || '',
-      specialite: r.fmaint_specialite || nouveauTechnicien.specialite || '',
+      email: nouveauTechnicien.email || nouveauTechnicien.emailContact || '',
+      domaine: nouveauTechnicien.domaine || '',
+      specialite: nouveauTechnicien.specialite || '',
     }
   } catch (error) {
     if (isDataverseSchemaError(error)) throwDataverseWriteError('fmaint_techniciens', 'creation', error)

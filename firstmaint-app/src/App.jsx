@@ -239,6 +239,16 @@ export default function App() {
   }
 
   async function seConnecter(email, roleChoisi) {
+    const roleDemande = roleChoisi || ROLES[0]
+    if (roleNecessiteProfilIntervenant(roleDemande)) {
+      setUtilisateurEmail(email)
+      setRole(roleDemande)
+      setSiteId(null)
+      setProfilIntervenant(null)
+      setVue('profilIntervenant')
+      return
+    }
+
     let utilisateur
     try {
       utilisateur = await dataService.getOrCreateUtilisateurCourant(email, email)
@@ -252,7 +262,7 @@ export default function App() {
         siteId: null,
       }
     }
-    const roleEffectif = roleChoisi || utilisateur.role || ROLES[0]
+    const roleEffectif = roleDemande || utilisateur.role || ROLES[0]
     setUtilisateurEmail(utilisateur.email)
     setRole(roleEffectif)
     setSiteId(utilisateur.siteId || null)
